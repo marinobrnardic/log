@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm create *)",
+      "Bash(mv /Users/marinobrnardic/Projects/log/SPEC.md /tmp/SPEC.md.bak && pnpm create next-app@latest . --ts --tailwind --eslint --app --no-src-dir --import-alias \"@/*\" --use-pnpm --no-turbopack 2>&1 | tail -30; mv /tmp/SPEC.md.bak /Users/marinobrnardic/Projects/log/SPEC.md)"
+    ]
+  }
+}
