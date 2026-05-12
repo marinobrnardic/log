@@ -1,0 +1,3 @@
+# CLI internal state — local to each contributor's machine.
+.temp/
+.branches/
