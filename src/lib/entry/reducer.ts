@@ -19,6 +19,9 @@ export interface EntryState {
    *  discard dialog. Stays true after the user hits the recap; goes false
    *  only after a successful save. */
   dirty: boolean;
+  /** True when the user entered the current set via "edit" on the recap.
+   *  Causes the next `next` action to return to recap instead of advancing. */
+  returnToRecap: boolean;
 }
 
 export type EntryAction =
@@ -28,7 +31,7 @@ export type EntryAction =
   | { type: "toggleSkip" }
   | { type: "next" }
   | { type: "back" }
-  | { type: "jumpTo"; index: number }
+  | { type: "jumpTo"; index: number; fromRecap?: boolean }
   | { type: "goToRecap" }
   | { type: "markClean" };
 
@@ -42,6 +45,7 @@ export function createInitialState(overrides: Partial<EntryState> = {}): EntrySt
     values: {},
     index: 0,
     dirty: false,
+    returnToRecap: false,
     ...overrides,
   };
 }
@@ -62,7 +66,7 @@ export function entryReducer(state: EntryState, action: EntryAction): EntryState
       const plan = buildWorkoutPlan(action.day, action.exercises, action.templates);
       // Preserve values if user re-selects the same day; otherwise reset.
       const keep = state.day === action.day ? state.values : {};
-      return { ...state, day: action.day, plan, values: keep };
+      return { ...state, day: action.day, plan, values: keep, returnToRecap: false };
     }
     case "start": {
       if (!state.plan) return state;
@@ -90,6 +94,9 @@ export function entryReducer(state: EntryState, action: EntryAction): EntryState
     }
     case "next": {
       if (!state.plan) return state;
+      if (state.returnToRecap) {
+        return { ...state, phase: "recap", returnToRecap: false };
+      }
       const last = state.index >= state.plan.workingSets.length - 1;
       if (last) return { ...state, phase: "recap" };
       return { ...state, index: state.index + 1 };
@@ -101,11 +108,16 @@ export function entryReducer(state: EntryState, action: EntryAction): EntryState
     case "jumpTo": {
       if (!state.plan) return state;
       const clamped = Math.max(0, Math.min(action.index, state.plan.workingSets.length - 1));
-      return { ...state, phase: "entry", index: clamped };
+      return {
+        ...state,
+        phase: "entry",
+        index: clamped,
+        returnToRecap: action.fromRecap === true,
+      };
     }
     case "goToRecap": {
       if (!state.plan) return state;
-      return { ...state, phase: "recap" };
+      return { ...state, phase: "recap", returnToRecap: false };
     }
     case "markClean": {
       return { ...state, dirty: false };

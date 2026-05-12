@@ -179,7 +179,7 @@ function FlowContent({
                 advanceOk ? "hover:bg-(--color-accent-hover)" : "opacity-50"
               }`}
             >
-              {isLast ? "Review" : "Next Set"}
+              {state.returnToRecap ? "Done" : isLast ? "Review" : "Next Set"}
             </button>
           </div>
         </div>
@@ -230,7 +230,10 @@ function FlowContent({
           <h2 className="text-2xl font-semibold">Review your workout</h2>
           <p className="text-sm text-(--color-text-secondary)">Tap any set to edit.</p>
         </div>
-        <RecapList state={state} onJumpToSet={(i) => dispatch({ type: "jumpTo", index: i })} />
+        <RecapList
+          state={state}
+          onJumpToSet={(i) => dispatch({ type: "jumpTo", index: i, fromRecap: true })}
+        />
         {errorMsg && <p className="text-sm text-(--color-destructive)">{errorMsg}</p>}
         <div className="sticky bottom-[calc(4rem+env(safe-area-inset-bottom))] -mx-4 px-4 pt-3 pb-3 bg-(--color-bg-base) border-t border-(--color-border) flex gap-2">
           <button
