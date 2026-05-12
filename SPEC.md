@@ -78,7 +78,7 @@ A simple personal workout logging web app with:
 ### Analytics
 
 * Dedicated `/analytics` page
-* Three progress graphs per main lift (Squat, Bench Press, Deadlift, Overhead Press)
+* Two progress views per main lift (Squat, Bench Press, Deadlift, Overhead Press) — Top Set Weight and Estimated 1RM — presented as tabs
 
 ---
 
@@ -451,7 +451,13 @@ Shown after the user clears the final set. Layout, top to bottom:
    * One row per set, in `order_index` order. Each row is a button — minimum **44px** tall — with the set type label on the left, `[weight × reps]` (or "Skipped") on the right, followed by a small `ChevronRight` (16px, `text-muted`, `aria-hidden`) that signals tap-ability without adding decoration. Tabular numerals on all values. Skipped rows render at 50% opacity.
 3. **Footer actions** — `Back` (secondary, returns to the final set with values preserved) and `Save Workout` (primary). The footer is **sticky** to the bottom of the viewport, matching the entry-screen footer pattern.
 
-Tapping a recap row jumps the user back to that specific set in the entry flow with values preserved; returning forward through `Next Set` brings them back to the recap (no data is lost).
+Tapping a recap row jumps the user back to that specific set in the entry flow with values preserved. While in this "edit-from-recap" mode:
+
+* The primary footer button is relabeled **Done** (in place of `Next Set` / `Review`)
+* Tapping **Done** returns directly to the recap — the user is **not** stepped through any subsequent sets
+* `Back` still moves to the previous set if the user wants to fix an adjacent entry; the edit-from-recap mode persists, so a later `Done` still returns to the recap
+
+The mode clears as soon as the user lands back on the recap. Re-entering edit on a different row starts a fresh edit-from-recap session.
 
 #### Day Picker (Workout Creation)
 
@@ -465,6 +471,18 @@ Tapping a recap row jumps the user back to that specific set in the entry flow w
 * Each item: card with `bg-surface`, 16px padding, 8px border-radius
 * Top row: split name + day label (Title size)
 * Bottom row: relative date ("Yesterday", "3 days ago") in `text-secondary`, falling back to absolute date for >7 days
+
+#### Tabs
+
+A horizontal tab bar used to switch between sibling views on the same page (currently: the analytics page).
+
+* Tab row sits at the top of the panel, with a 1px `border` divider running underneath
+* Active tab: 2px `accent` bottom border, `text-primary` label
+* Inactive tab: transparent bottom border, `text-muted` label (hover → `text-secondary`)
+* **Sticky** below the top nav (`top: 56px`) so the tabs remain visible while scrolling through long panels
+* Horizontal scroll if tabs overflow the viewport width
+* Min height 44px per tab (touch target)
+* ARIA: `role="tablist"` on the bar, `role="tab"` + `aria-selected` + `aria-controls` on each button, `role="tabpanel"` + `aria-labelledby` on the panel
 
 #### Analytics Graphs
 
@@ -580,7 +598,7 @@ No database writes occur in Phase 1. The app loads the exercises and set templat
 #### Phase 3 — Recap & Save
 
 * The recap screen lists every exercise with each set's logged values (or "Skipped")
-* Tapping any recap row jumps back to that set in Phase 2 (values preserved); advancing forward returns to the recap
+* Tapping any recap row jumps back to that set in Phase 2 (values preserved). In this edit-from-recap mode the primary button reads **Done** and returns directly to the recap on tap, regardless of position in the working-set list — the user is never re-walked through subsequent sets
 * Tapping **Save Workout** triggers a single transaction that inserts:
   * One `workouts` row (`split_id` hardcoded to `'2day'`, `day` set from selection)
   * One `workout_exercises` row per exercise, in `order_index` order
@@ -603,7 +621,10 @@ No database writes occur in Phase 1. The app loads the exercises and set templat
 
 * **Read-only recap** of a saved workout
 * Same layout as the Recap Screen component (Section 8), minus the `Save Workout` / `Back` buttons
-* Header actions: **Edit** (routes to `/workouts/[id]/edit`) and **Delete** (opens confirmation dialog)
+* **Sticky footer actions** at the bottom of the viewport (matching the entry/recap footer pattern, `bottom: calc(64px + env(safe-area-inset-bottom))`):
+  * **Delete** (left, secondary destructive style — outlined, `text-destructive`, with a `Trash2` icon and "Delete" label) — opens the confirmation dialog
+  * **Edit** (right, primary `accent` style with a `Pencil` icon and "Edit" label) — routes to `/workouts/[id]/edit`
+* Both buttons fill the footer equally (`flex-1`) and meet the 44px touch-target minimum
 * Warmup section is **not** shown on this screen (warmups are guidance for live entry only)
 
 ---
@@ -736,9 +757,9 @@ Graphs are shown for these four lifts only ("the big four"):
 
 ### Graphs
 
-The page contains **three sections**, each with **four line graphs** (one per main lift):
+The page contains **two tabs**, each with **four line graphs** (one per main lift). The tab bar uses the Tabs component (Section 8); only the active tab's graphs are rendered.
 
-#### 1. Top Set Weight Over Time
+#### Tab 1 — Top Set Weight (default)
 
 * X-axis: workout date
 * Y-axis: weight (kg)
@@ -746,7 +767,7 @@ The page contains **three sections**, each with **four line graphs** (one per ma
   * Squat / Bench / OHP → weight of the top-set type set
   * Deadlift → heaviest non-skipped single in the workout
 
-#### 2. Estimated 1RM Over Time
+#### Tab 2 — Estimated 1RM
 
 * X-axis: workout date
 * Y-axis: estimated 1RM (kg)
@@ -754,12 +775,6 @@ The page contains **three sections**, each with **four line graphs** (one per ma
 * Data point per workout:
   * Squat / Bench / OHP → Epley applied to the top-set
   * Deadlift → Epley applied to the heaviest non-skipped single
-
-#### 3. Total Volume per Workout
-
-* X-axis: workout date
-* Y-axis: total volume (kg × reps)
-* Data point per workout: sum of `weight × reps` across all non-skipped sets of that exercise (top set + back-off; for Deadlift: the 3 heavy singles + the 2 back-off sets)
 
 ### Exclusions
 
@@ -897,9 +912,6 @@ High value because bugs here silently produce wrong numbers.
 * **Epley 1RM** (`estimate1RM(weight, reps)`)
   * `weight × (1 + reps/30)` for valid inputs
   * Handles edge cases (reps = 1, reps = 0)
-* **Volume calculation** (`calculateVolume(sets)`)
-  * Sums `weight × reps` across non-skipped sets
-  * Excludes skipped sets
 
 #### 2. Save Workout Flow (Integration Test)
 
@@ -967,7 +979,7 @@ Documented manual test, run once after deployment and after any RLS policy chang
 * **Back** returns to the previous set with values preserved (disabled on the first set)
 * On the final set, the primary button reads **Review** and advances to the recap
 * The recap lists every exercise with each set's weight × reps (or "Skipped")
-* Tapping any recap row jumps to that set in the entry flow with values preserved
+* Tapping any recap row jumps to that set in the entry flow with values preserved; the primary button reads **Done** and returns directly to the recap when tapped
 * **Save Workout** on the recap inserts `workouts`, `workout_exercises`, and `sets` rows in one transaction, then redirects to `/workouts`
 * Navigating away from any phase of the guided flow (logo, tab bar, browser back) prompts a discard confirmation
 * Fixed number of sets per exercise (no add/remove)
@@ -988,12 +1000,14 @@ Documented manual test, run once after deployment and after any RLS policy chang
 * A fixed **New Workout** button sits at the bottom of `/workouts`, above the bottom tab bar
 * Empty history shows empty state + Start Workout button
 * `/workouts/[id]` shows a read-only recap of the saved workout (no warmup section)
+* `/workouts/[id]` exposes **Edit** and **Delete** as full-width labeled buttons in a sticky footer above the bottom tab bar
 * Delete requires confirmation; cascades to all related records
 * Edit (`/workouts/[id]/edit`) re-runs the guided flow with values preloaded; saving issues `UPDATE`s against existing `sets`
 
 ### Analytics
-* `/analytics` page renders three sections: Top Set Weight, Estimated 1RM, Total Volume
-* Each section shows a line graph per main lift (Squat, Bench, Deadlift, OHP)
+* `/analytics` page renders two tabs: **Top Set Weight** (default) and **Estimated 1RM**
+* Each tab shows a line graph per main lift (Squat, Bench, Deadlift, OHP)
+* The tab bar is sticky below the top nav so it remains visible while scrolling
 * Skipped sets are excluded from all calculations
 * Empty state shown when no data exists for a lift
 

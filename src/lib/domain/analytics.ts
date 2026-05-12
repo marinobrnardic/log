@@ -7,14 +7,6 @@ export function estimate1RM(weight: number, reps: number): number | null {
   return weight * (1 + reps / 30);
 }
 
-/** Sum of weight × reps across non-skipped sets. */
-export function calculateVolume(sets: SavedSet[]): number {
-  return sets.reduce((acc, s) => {
-    if (s.isSkipped || s.weight == null || s.reps == null) return acc;
-    return acc + s.weight * s.reps;
-  }, 0);
-}
-
 /** Pick the "top-set" set for an exercise within a workout, per §11.1:
  *  - Squat / Bench / OHP → set with type "top_set" (non-skipped)
  *  - Deadlift           → heaviest non-skipped single
@@ -64,20 +56,6 @@ export function build1RMSeries(
       if (!top?.weight || top.reps == null) return [];
       const oneRm = estimate1RM(top.weight, top.reps);
       return oneRm == null ? [] : [{ date: w.createdAt, value: oneRm }];
-    });
-}
-
-export function buildVolumeSeries(
-  exerciseName: string,
-  workouts: SavedWorkout[],
-): AnalyticsPoint[] {
-  return workoutsAscending(workouts)
-    .flatMap((w) => {
-      const ex = w.exercises.find((e) => e.exerciseName === exerciseName);
-      if (!ex) return [];
-      const volume = calculateVolume(ex.sets);
-      if (volume === 0) return [];
-      return [{ date: w.createdAt, value: volume }];
     });
 }
 
