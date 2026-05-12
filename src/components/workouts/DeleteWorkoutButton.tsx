@@ -29,10 +29,10 @@ export function DeleteWorkoutButton({ workoutId }: { workoutId: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="text-(--color-destructive) p-2 -m-2"
-        aria-label="Delete workout"
+        className="flex-1 min-h-[44px] rounded-lg border border-(--color-destructive)/40 text-(--color-destructive) flex items-center justify-center gap-2"
       >
-        <Trash2 size={20} strokeWidth={1.75} />
+        <Trash2 size={18} strokeWidth={1.75} aria-hidden="true" />
+        Delete
       </button>
 
       {open && (
