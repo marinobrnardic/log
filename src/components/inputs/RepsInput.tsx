@@ -1,5 +1,7 @@
 "use client";
 
+import type { Ref } from "react";
+
 interface Props {
   value: string;
   onChange: (next: string) => void;
@@ -8,6 +10,7 @@ interface Props {
   invalid?: boolean;
   ariaLabel?: string;
   size?: "lg" | "md";
+  inputRef?: Ref<HTMLInputElement>;
 }
 
 export function RepsInput({
@@ -18,6 +21,7 @@ export function RepsInput({
   invalid,
   ariaLabel,
   size = "lg",
+  inputRef,
 }: Props) {
   const sizeCls = size === "lg" ? "text-2xl min-h-[64px]" : "text-base min-h-[44px]";
   const borderCls = invalid
@@ -25,6 +29,7 @@ export function RepsInput({
     : "border-(--color-border)";
   return (
     <input
+      ref={inputRef}
       type="text"
       inputMode="numeric"
       value={value}

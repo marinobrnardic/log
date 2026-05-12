@@ -404,9 +404,9 @@ Dark mode only. No theme toggle in v1.
 ```
 
 * Label on top: medium weight, includes set type (Top Set / Back-off 1 / etc.)
-* Skip button on the right of the label
+* Skip toggle on the right of the label — reads **"Skip"** when inactive; flips to **"Undo skip"** with a `RotateCcw` icon and an `accent` border/text when active (so it clearly invites a reversal, rather than reading as a static "Skipped" badge)
 * Inputs side by side below
-* Skipped state: row at 50% opacity, inputs disabled, "Skipped" replaces inputs
+* Skipped state: row at 50% opacity, the input area is replaced with a centered placeholder block containing the word "Skipped" and a hint sub-line ("Tap 'Undo skip' above to enter values.")
 * 16px vertical padding between rows; 1px `border` divider only
 
 #### Set Progress (Guided Entry)
@@ -433,26 +433,25 @@ A single screen showing one working set at a time. Layout, top to bottom:
 1. **Set Progress** header (above)
 2. **Warmup section** (only for Squat / Bench / OHP / Deadlift, only on the *first working set* of that exercise, only if prior data exists — see Section 10)
 3. **Set inputs** — weight (kg) and reps, side by side, with the same input styling defined under "Inputs (Weight & Reps)"
-4. **Skip toggle** — top-right of the input row; when active, inputs are disabled and show "Skipped"
-5. **Footer actions** — `Back` (secondary, left) and `Next Set` (primary, right). On the final set, `Next Set` is replaced with `Review`
+4. **Skip toggle** — top-right of the input row; copy and visuals per "Set Row" above
+5. **Validation helper** (conditional) — when the user has touched a field but the set is not yet valid, a single line of `text-muted` text appears below the inputs: "Enter weight and reps, or tap Skip." Suppressed before any interaction (no pre-emptive nagging).
+6. **Footer actions** — `Back` (secondary, left) and `Next Set` (primary, right). The footer is **sticky** to the bottom of the viewport, above the bottom tab bar (`bottom: calc(64px + env(safe-area-inset-bottom))`), so the primary action is always thumb-reachable regardless of content height. On the final set, `Next Set` is replaced with `Review`.
 
-Validation gate: `Next Set` / `Review` is **disabled** until either valid weight + reps are entered OR the set is marked skipped.
+Validation gate: while either weight or reps is invalid (and the set is not skipped), `Next Set` / `Review` is visually dimmed (`opacity-50`) and carries `aria-disabled="true"` — but **remains tappable**. Tapping the dimmed button focuses the first empty input rather than failing silently (a silent disabled button confuses users mid-workout). Once both inputs are valid (or the set is skipped), the button reaches its full-color, fully-active state.
 
-`Back` is disabled on the first set of the workout.
+`Back` uses the native `disabled` attribute (no alternative action) and is disabled on the first set of the workout.
 
 #### Recap Screen
 
 Shown after the user clears the final set. Layout, top to bottom:
 
-1. Heading: "Review your workout"
+1. Heading: "Review your workout", with a `text-secondary` sub-line: "Tap any set to edit." (signals that the rows below are interactive).
 2. For each exercise in `order_index` order:
    * Exercise name (Title size)
-   * One row per set, in `order_index` order, showing: set type label, weight × reps, or "Skipped"
-   * Tabular numerals on all values
-3. **Save Workout** primary button (full-width)
-4. **Back** secondary button (returns to the final set, with all values preserved in client state)
+   * One row per set, in `order_index` order. Each row is a button — minimum **44px** tall — with the set type label on the left, `[weight × reps]` (or "Skipped") on the right, followed by a small `ChevronRight` (16px, `text-muted`, `aria-hidden`) that signals tap-ability without adding decoration. Tabular numerals on all values. Skipped rows render at 50% opacity.
+3. **Footer actions** — `Back` (secondary, returns to the final set with values preserved) and `Save Workout` (primary). The footer is **sticky** to the bottom of the viewport, matching the entry-screen footer pattern.
 
-Recap rows are tappable — tapping a row jumps the user back to that specific set in the entry flow with values preserved. Returning forward through `Next Set` brings them back to the recap (no data is lost).
+Tapping a recap row jumps the user back to that specific set in the entry flow with values preserved; returning forward through `Next Set` brings them back to the recap (no data is lost).
 
 #### Day Picker (Workout Creation)
 
@@ -519,8 +518,8 @@ Recap rows are tappable — tapping a row jumps the user back to that specific s
 
 * Library: **Lucide React** (`lucide-react`)
 * Stroke width: 1.75 (default)
-* Sizes: 20px in tab bar / inline; 24px for primary actions
-* Always paired with a visible label or `aria-label`
+* Sizes: **14–16px** for in-context affordances (e.g. row chevrons, icons next to short button labels); **20px** in tab bar and inline labels; **24px** for primary actions
+* Always paired with a visible label or `aria-label`. Decorative icons that duplicate adjacent text use `aria-hidden="true"`.
 
 ### Motion
 
@@ -538,6 +537,7 @@ Recap rows are tappable — tapping a row jumps the user back to that specific s
 * All icon-only buttons have `aria-label`
 * Semantic HTML (`<main>`, `<nav>`, etc.)
 * Form inputs always have associated `<label>` elements
+* Validation-gated primary actions use `aria-disabled` (not the native `disabled` attribute) so the button stays focusable and tappable. Tapping a dimmed button must do something useful — typically focus the first empty input — rather than fail silently.
 
 ### Don'ts
 
@@ -570,8 +570,9 @@ No database writes occur in Phase 1. The app loads the exercises and set templat
 * For each set, the user must either:
   * Enter a valid weight (> 0 kg) and reps (≥ 1), **or**
   * Toggle **Skip** on
-* Once one of the above is true, the **Next Set** button becomes enabled
+* Once one of the above is true, the **Next Set** button reaches its fully-active state
 * Tapping **Next Set** advances to the next working set; on the final set, the button reads **Review** and advances to Phase 3
+* While the set is incomplete, the button is visually dimmed but still tappable — tapping it focuses the first empty input rather than advancing (see Section 8 → Set Entry Screen for the full validation-feedback contract)
 * Tapping **Back** returns to the previous set with values preserved (disabled on the first set)
 * All in-progress data is held in client state only; nothing is persisted yet
 * Warmup guidance (Section 10) renders above the set inputs on the *first working set* of any of the big four lifts, when prior data exists

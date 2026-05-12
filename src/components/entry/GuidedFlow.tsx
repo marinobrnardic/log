@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { ChevronRight } from "lucide-react";
 import { useRegisterFlowGuard } from "@/components/nav/FlowGuardContext";
 import { DiscardDialog } from "@/components/entry/DiscardDialog";
 import { DayPicker } from "@/components/entry/DayPicker";
@@ -71,6 +72,8 @@ function FlowContent({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const pendingIntent = useRef<(() => void) | null>(null);
+  const weightRef = useRef<HTMLInputElement>(null);
+  const repsRef = useRef<HTMLInputElement>(null);
 
   const guardActive = state.dirty && state.phase !== "day";
 
@@ -128,6 +131,16 @@ function FlowContent({
       ? getAnchorWeight(currentSet.exerciseName, dataset.history)
       : null;
     const warmups = currentSet.isFirstOfExercise ? getWarmupSets(anchor) : null;
+    const advanceOk = canAdvance(state);
+    const hasTouched = !value.isSkipped && (value.weight !== "" || value.reps !== "");
+    const handleNext = () => {
+      if (advanceOk) {
+        dispatch({ type: "next" });
+        return;
+      }
+      if (!value.weight) weightRef.current?.focus();
+      else if (!value.reps) repsRef.current?.focus();
+    };
 
     return (
       <>
@@ -145,8 +158,11 @@ function FlowContent({
             targetRepsMax={currentSet.targetRepsMax}
             onChange={(field, v) => dispatch({ type: "setField", field, value: v })}
             onToggleSkip={() => dispatch({ type: "toggleSkip" })}
+            showHelper={hasTouched && !advanceOk}
+            weightRef={weightRef}
+            repsRef={repsRef}
           />
-          <div className="flex gap-2">
+          <div className="sticky bottom-[calc(4rem+env(safe-area-inset-bottom))] -mx-4 px-4 pt-3 pb-3 bg-(--color-bg-base) border-t border-(--color-border) flex gap-2">
             <button
               type="button"
               onClick={() => dispatch({ type: "back" })}
@@ -157,9 +173,11 @@ function FlowContent({
             </button>
             <button
               type="button"
-              onClick={() => dispatch({ type: "next" })}
-              disabled={!canAdvance(state)}
-              className="flex-1 min-h-[44px] rounded-lg bg-(--color-accent) text-(--color-accent-text) font-medium hover:bg-(--color-accent-hover) disabled:opacity-50"
+              onClick={handleNext}
+              aria-disabled={!advanceOk || undefined}
+              className={`flex-1 min-h-[44px] rounded-lg bg-(--color-accent) text-(--color-accent-text) font-medium ${
+                advanceOk ? "hover:bg-(--color-accent-hover)" : "opacity-50"
+              }`}
             >
               {isLast ? "Review" : "Next Set"}
             </button>
@@ -208,17 +226,20 @@ function FlowContent({
           current={state.plan.total}
           total={state.plan.total}
         />
-        <h2 className="text-2xl font-semibold">Review your workout</h2>
+        <div className="space-y-1">
+          <h2 className="text-2xl font-semibold">Review your workout</h2>
+          <p className="text-sm text-(--color-text-secondary)">Tap any set to edit.</p>
+        </div>
         <RecapList state={state} onJumpToSet={(i) => dispatch({ type: "jumpTo", index: i })} />
         {errorMsg && <p className="text-sm text-(--color-destructive)">{errorMsg}</p>}
-        <div className="flex gap-2">
+        <div className="sticky bottom-[calc(4rem+env(safe-area-inset-bottom))] -mx-4 px-4 pt-3 pb-3 bg-(--color-bg-base) border-t border-(--color-border) flex gap-2">
           <button
             type="button"
             onClick={() =>
               dispatch({ type: "jumpTo", index: state.plan!.workingSets.length - 1 })
             }
             disabled={pending}
-            className="flex-1 min-h-[44px] rounded-lg border border-(--color-border)"
+            className="flex-1 min-h-[44px] rounded-lg border border-(--color-border) disabled:opacity-50"
           >
             Back
           </button>
@@ -290,13 +311,22 @@ function RecapList({
                   <button
                     type="button"
                     onClick={() => onJumpToSet(row.planIndex)}
+                    aria-label={`Edit ${row.label}: ${display}`}
                     className={`w-full text-left rounded px-2 -mx-2 hover:bg-(--color-bg-surface-2) ${
                       v.isSkipped ? "opacity-50" : ""
                     }`}
                   >
-                    <div className="flex items-baseline justify-between py-2 border-b border-(--color-border)">
+                    <div className="flex items-center justify-between gap-3 min-h-[44px] py-3 border-b border-(--color-border)">
                       <span className="text-(--color-text-secondary)">{row.label}</span>
-                      <span className="tabular">{display}</span>
+                      <span className="flex items-center gap-2">
+                        <span className="tabular">{display}</span>
+                        <ChevronRight
+                          size={16}
+                          strokeWidth={1.75}
+                          className="text-(--color-text-muted)"
+                          aria-hidden="true"
+                        />
+                      </span>
                     </div>
                   </button>
                 </li>
