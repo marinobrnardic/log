@@ -158,12 +158,11 @@ export function WorkoutEditForm({ workout }: Props) {
     <>
       <div className="space-y-6 pb-28">
         <header>
-          <h1 className="text-3xl font-semibold">
-            {SPLIT_NAME} <span className="text-(--color-text-secondary)">·</span> Day{" "}
-            {dayLabel(workout.day)}
-          </h1>
-          <p className="text-sm text-(--color-text-secondary) mt-1 tabular">
+          <h1 className="text-3xl font-semibold tabular">
             {formatWorkoutDate(workout.createdAt)}
+          </h1>
+          <p className="text-sm text-(--color-text-secondary) mt-1">
+            {SPLIT_NAME} · Day {dayLabel(workout.day)}
           </p>
         </header>
 

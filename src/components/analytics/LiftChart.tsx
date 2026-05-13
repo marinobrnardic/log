@@ -10,6 +10,7 @@ import {
   YAxis,
 } from "recharts";
 import type { AnalyticsPoint } from "@/lib/domain/analytics";
+import { formatChartDate } from "@/lib/format";
 
 interface Props {
   title: string;
@@ -28,7 +29,7 @@ export function LiftChart({ title, points, yUnit }: Props) {
       ) : (
         <div className="h-40">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={points.map((p) => ({ ...p, label: fmtDate(p.date) }))}>
+            <LineChart data={points.map((p) => ({ ...p, label: formatChartDate(p.date) }))}>
               <CartesianGrid strokeDasharray="3 3" stroke="#27272A" />
               <XAxis
                 dataKey="label"
@@ -70,11 +71,6 @@ export function LiftChart({ title, points, yUnit }: Props) {
       )}
     </div>
   );
-}
-
-function fmtDate(iso: string): string {
-  const d = new Date(iso);
-  return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
 function round2(n: number): number {

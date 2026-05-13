@@ -14,11 +14,11 @@ export function WorkoutListItem({ id, splitName, day, createdAt }: Props) {
       href={`/workouts/${id}`}
       className="block bg-(--color-bg-surface) rounded-lg p-4 hover:bg-(--color-bg-surface-2)"
     >
-      <div className="text-2xl font-semibold">
-        {splitName} <span className="text-(--color-text-secondary)">·</span> Day {dayLabel(day)}
-      </div>
-      <div className="text-sm text-(--color-text-secondary) mt-1 tabular">
+      <div className="text-2xl font-semibold tabular">
         {formatWorkoutDate(createdAt)}
+      </div>
+      <div className="text-sm text-(--color-text-secondary) mt-1">
+        {splitName} · Day {dayLabel(day)}
       </div>
     </Link>
   );
