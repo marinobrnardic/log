@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
+import { createPortal } from "react-dom";
+
 interface Props {
   open: boolean;
   onConfirm: () => void;
@@ -7,10 +10,19 @@ interface Props {
 }
 
 export function DiscardDialog({ open, onConfirm, onCancel }: Props) {
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
   if (!open) return null;
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-4"
+      className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
     >
@@ -36,6 +48,7 @@ export function DiscardDialog({ open, onConfirm, onCancel }: Props) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
