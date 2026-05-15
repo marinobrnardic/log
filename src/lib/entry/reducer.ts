@@ -33,6 +33,7 @@ export type EntryAction =
   | { type: "back" }
   | { type: "jumpTo"; index: number; fromRecap?: boolean }
   | { type: "goToRecap" }
+  | { type: "finishWorkout" }
   | { type: "markClean" };
 
 export const emptyValue = (): SetValue => ({ weight: "", reps: "", isSkipped: false });
@@ -118,6 +119,22 @@ export function entryReducer(state: EntryState, action: EntryAction): EntryState
     case "goToRecap": {
       if (!state.plan) return state;
       return { ...state, phase: "recap", returnToRecap: false };
+    }
+    case "finishWorkout": {
+      if (!state.plan) return state;
+      const startIndex = canAdvance(state) ? state.index + 1 : state.index;
+      const newValues = { ...state.values };
+      for (let i = startIndex; i < state.plan.workingSets.length; i++) {
+        const key = state.plan.workingSets[i].key;
+        newValues[key] = { ...emptyValue(), isSkipped: true };
+      }
+      return {
+        ...state,
+        values: newValues,
+        phase: "recap",
+        returnToRecap: false,
+        dirty: true,
+      };
     }
     case "markClean": {
       return { ...state, dirty: false };

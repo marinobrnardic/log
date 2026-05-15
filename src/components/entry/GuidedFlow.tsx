@@ -162,25 +162,36 @@ function FlowContent({
             weightRef={weightRef}
             repsRef={repsRef}
           />
-          <div className="sticky bottom-[calc(4rem+env(safe-area-inset-bottom))] -mx-4 px-4 pt-3 pb-3 bg-(--color-bg-base) border-t border-(--color-border) flex gap-2">
-            <button
-              type="button"
-              onClick={() => dispatch({ type: "back" })}
-              disabled={state.index === 0}
-              className="flex-1 min-h-[44px] rounded-lg border border-(--color-border) text-(--color-text-primary) disabled:opacity-30"
-            >
-              Back
-            </button>
-            <button
-              type="button"
-              onClick={handleNext}
-              aria-disabled={!advanceOk || undefined}
-              className={`flex-1 min-h-[44px] rounded-lg bg-(--color-accent) text-(--color-accent-text) font-medium ${
-                advanceOk ? "hover:bg-(--color-accent-hover)" : "opacity-50"
-              }`}
-            >
-              {state.returnToRecap ? "Done" : isLast ? "Review" : "Next Set"}
-            </button>
+          <div className="sticky bottom-[calc(4rem+env(safe-area-inset-bottom))] -mx-4 px-4 pt-3 pb-3 bg-(--color-bg-base) border-t border-(--color-border) flex flex-col gap-2">
+            {!state.returnToRecap && !isLast && (
+              <button
+                type="button"
+                onClick={() => dispatch({ type: "finishWorkout" })}
+                className="w-full min-h-[44px] rounded-lg border border-(--color-border) text-(--color-text-secondary)"
+              >
+                Finish Workout
+              </button>
+            )}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => dispatch({ type: "back" })}
+                disabled={state.index === 0}
+                className="flex-1 min-h-[44px] rounded-lg border border-(--color-border) text-(--color-text-primary) disabled:opacity-30"
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                onClick={handleNext}
+                aria-disabled={!advanceOk || undefined}
+                className={`flex-1 min-h-[44px] rounded-lg bg-(--color-accent) text-(--color-accent-text) font-medium ${
+                  advanceOk ? "hover:bg-(--color-accent-hover)" : "opacity-50"
+                }`}
+              >
+                {state.returnToRecap ? "Done" : isLast ? "Review" : "Next Set"}
+              </button>
+            </div>
           </div>
         </div>
         <DiscardDialog
@@ -217,6 +228,8 @@ function FlowContent({
     });
   }
 
+  const continueIndex = firstIncompleteIndex(state);
+
   return (
     <>
       <div className="space-y-6 pb-6">
@@ -238,13 +251,11 @@ function FlowContent({
         <div className="sticky bottom-[calc(4rem+env(safe-area-inset-bottom))] -mx-4 px-4 pt-3 pb-3 bg-(--color-bg-base) border-t border-(--color-border) flex gap-2">
           <button
             type="button"
-            onClick={() =>
-              dispatch({ type: "jumpTo", index: state.plan!.workingSets.length - 1 })
-            }
+            onClick={() => dispatch({ type: "jumpTo", index: continueIndex })}
             disabled={pending}
             className="flex-1 min-h-[44px] rounded-lg border border-(--color-border) disabled:opacity-50"
           >
-            Back
+            Continue Workout
           </button>
           <button
             type="button"
@@ -340,6 +351,21 @@ function RecapList({
       ))}
     </div>
   );
+}
+
+function firstIncompleteIndex(state: EntryState): number {
+  if (!state.plan) return 0;
+  const sets = state.plan.workingSets;
+  for (let i = 0; i < sets.length; i++) {
+    const v = state.values[sets[i].key];
+    if (!v || v.isSkipped) return i;
+    const w = Number(v.weight);
+    const r = Number(v.reps);
+    const valid =
+      Number.isFinite(w) && w > 0 && Number.isFinite(r) && Number.isInteger(r) && r >= 1;
+    if (!valid) return i;
+  }
+  return sets.length - 1;
 }
 
 function groupForSave(state: EntryState): SavePayloadExercise[] {

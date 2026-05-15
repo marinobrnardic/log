@@ -469,8 +469,8 @@ The mode clears as soon as the user lands back on the recap. Re-entering edit on
 #### Workout History List Item
 
 * Each item: card with `bg-surface`, 16px padding, 8px border-radius
-* Top row: split name + day label (Title size)
-* Bottom row: relative date ("Yesterday", "3 days ago") in `text-secondary`, falling back to absolute date for >7 days
+* **Top row**: workout date (Title size, `text-primary`, tabular numerals) — see "Date Formatting" below for the exact format
+* **Bottom row**: `Split name · Day label` in `text-secondary`, caption size
 
 #### Tabs
 
@@ -483,6 +483,18 @@ A horizontal tab bar used to switch between sibling views on the same page (curr
 * Horizontal scroll if tabs overflow the viewport width
 * Min height 44px per tab (touch target)
 * ARIA: `role="tablist"` on the bar, `role="tab"` + `aria-selected` + `aria-controls` on each button, `role="tabpanel"` + `aria-labelledby` on the panel
+
+#### Confirmation Dialog
+
+Shared pattern for the discard-workout dialog (§9 → Leaving the Guided Flow) and the delete-workout dialog (§9 → Workout Detail).
+
+* Rendered into `document.body` via React portal — escapes sticky footers, tab bars, and any local stacking context that would otherwise clip the dialog
+* Backdrop: `fixed inset-0 bg-black/60`, centered on all viewports (`flex items-center justify-center p-4`), `z-[100]` so it sits above the sticky entry/recap footer and the bottom tab bar
+* Panel: `bg-surface`, 8px border-radius, 24px padding, max-width 384px (`max-w-sm`), full-width below that
+* Body scroll is locked while the dialog is open (`document.body.style.overflow = "hidden"`) and the prior value is restored on close
+* Two actions, right-aligned: secondary **Cancel** (transparent with `border`) on the left, primary action on the right — accent style for non-destructive confirmations, destructive style (outlined `text-destructive`) for delete
+* `role="dialog"` + `aria-modal="true"`
+* In-flight state: while the primary action is pending, both buttons are `disabled` and the primary action's label switches to a verb form ("Deleting…")
 
 #### Analytics Graphs
 
@@ -538,6 +550,20 @@ A horizontal tab bar used to switch between sibling views on the same page (curr
 * Stroke width: 1.75 (default)
 * Sizes: **14–16px** for in-context affordances (e.g. row chevrons, icons next to short button labels); **20px** in tab bar and inline labels; **24px** for primary actions
 * Always paired with a visible label or `aria-label`. Decorative icons that duplicate adjacent text use `aria-hidden="true"`.
+
+### Date Formatting
+
+All workout-date displays (history list item, workout detail header, edit header) share one format. The diff is computed from the **calendar day** of the workout vs. the current day — not a raw millisecond delta — so a workout logged at 23:50 reads as "Yesterday" by 00:10 the following morning, not "Today".
+
+| Condition                          | Output                                                  |
+|------------------------------------|---------------------------------------------------------|
+| Same calendar day                  | `Today`                                                 |
+| 1 day ago                          | `Yesterday`                                             |
+| 2–7 days ago                       | `N days ago` (via `Intl.RelativeTimeFormat`)            |
+| >7 days ago, same year             | `Mon, May 4` (weekday short + month short + day)        |
+| Different year, or in the future   | `May 4, 2025` (month short + day + year)                |
+
+The analytics chart X-axis uses a separate compact format: `May 4` (month short + day, no weekday, no year). All date displays render with `tabular-nums`.
 
 ### Motion
 
@@ -620,6 +646,7 @@ No database writes occur in Phase 1. The app loads the exercises and set templat
 ### Workout Detail (`/workouts/[id]`)
 
 * **Read-only recap** of a saved workout
+* **Header**: workout date (Display size, tabular) on top; `Split name · Day label` (caption, `text-secondary`) below — same hierarchy as the workout list item. The edit screen (`/workouts/[id]/edit`) uses the same header.
 * Same layout as the Recap Screen component (Section 8), minus the `Save Workout` / `Back` buttons
 * **Sticky footer actions** at the bottom of the viewport (matching the entry/recap footer pattern, `bottom: calc(64px + env(safe-area-inset-bottom))`):
   * **Delete** (left, secondary destructive style — outlined, `text-destructive`, with a `Trash2` icon and "Delete" label) — opens the confirmation dialog
@@ -790,6 +817,7 @@ The page contains **two tabs**, each with **four line graphs** (one per main lif
 * All metrics computed client-side from `sets` data joined through `workout_exercises` and `workouts`
 * Use Recharts `<LineChart>` for visualization
 * Default view: all-time data (time-period filtering deferred to future improvements)
+* X-axis tick labels render as `May 4` (compact month + day, no year) — see §8 → Date Formatting
 
 ---
 
@@ -1024,6 +1052,9 @@ Documented manual test, run once after deployment and after any RLS policy chang
 * Inter font loads correctly with tabular numerals on all numeric displays
 * All touch targets meet the 44×44px minimum
 * `/profile` page shows email, sign-out, and password reset link
+* Confirmation dialogs (discard, delete) render via a portal to `document.body`, lock body scroll while open, and sit above sticky footers and the bottom tab bar
+* Workout list, detail, and edit screens display the workout date as the primary heading and the `Split · Day` as the secondary label
+* Relative dates use a calendar-day diff so workouts logged late at night don't read as "Today" the following morning
 
 ---
 
