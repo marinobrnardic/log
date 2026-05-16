@@ -84,7 +84,7 @@ A simple personal workout logging web app with:
 
 ## 4. Data Model
 
-> **Persistence timing**: `workouts`, `workout_exercises`, and `sets` rows are inserted in a single transaction when the user clicks **Save Workout** on the recap screen. They do **not** exist during the guided entry flow — all in-progress data lives only in client state. For the **edit** flow (existing workout), `sets` rows are `UPDATE`d in place; no new `workouts` or `workout_exercises` rows are created.
+> Persistence timing is defined in §3 → Logging. For the **edit** flow, existing `sets` rows are `UPDATE`d in place; no new `workouts` or `workout_exercises` rows are created.
 
 ### Day Mapping
 
@@ -238,71 +238,7 @@ Not allowed:
 
 ### Seed SQL
 
-```sql
--- Splits
-INSERT INTO exercise_splits (id, name) VALUES
-  ('2day', '2-Day Split');
-
--- Day A exercises
-INSERT INTO exercises (id, name, split_id, day, order_index, notes) VALUES
-  (gen_random_uuid(), 'Squat',          '2day', 1, 1, NULL),
-  (gen_random_uuid(), 'Bench Press',    '2day', 1, 2, NULL),
-  (gen_random_uuid(), 'RDL',            '2day', 1, 3, NULL),
-  (gen_random_uuid(), 'Bent Over Rows', '2day', 1, 4, NULL);
-
--- Day B exercises
-INSERT INTO exercises (id, name, split_id, day, order_index, notes) VALUES
-  (gen_random_uuid(), 'Deadlift',               '2day', 2, 1, '@ 90% 1RM'),
-  (gen_random_uuid(), 'Overhead Press',         '2day', 2, 2, NULL),
-  (gen_random_uuid(), 'Pull-ups',               '2day', 2, 3, NULL),
-  (gen_random_uuid(), 'Dips',                   '2day', 2, 4, NULL),
-  (gen_random_uuid(), 'Bulgarian Split Squats', '2day', 2, 5, NULL);
-
--- Set templates per exercise (look up exercise_id by name + split + day)
--- Squat
-INSERT INTO exercise_set_templates (exercise_id, type, order_index, target_reps_min, target_reps_max, default_sets, notes)
-SELECT id, 'top_set', 1, 4, 6, 1, NULL FROM exercises WHERE name = 'Squat'  AND split_id = '2day' AND day = 1
-UNION ALL
-SELECT id, 'backoff', 2, 6, 10, 2, NULL FROM exercises WHERE name = 'Squat' AND split_id = '2day' AND day = 1;
-
--- Bench Press
-INSERT INTO exercise_set_templates (exercise_id, type, order_index, target_reps_min, target_reps_max, default_sets, notes)
-SELECT id, 'top_set', 1, 4, 6, 1, NULL FROM exercises WHERE name = 'Bench Press' AND split_id = '2day' AND day = 1
-UNION ALL
-SELECT id, 'backoff', 2, 8, 10, 2, NULL FROM exercises WHERE name = 'Bench Press' AND split_id = '2day' AND day = 1;
-
--- RDL
-INSERT INTO exercise_set_templates (exercise_id, type, order_index, target_reps_min, target_reps_max, default_sets, notes)
-SELECT id, 'normal', 1, 6, 10, 3, NULL FROM exercises WHERE name = 'RDL' AND split_id = '2day' AND day = 1;
-
--- Bent Over Rows
-INSERT INTO exercise_set_templates (exercise_id, type, order_index, target_reps_min, target_reps_max, default_sets, notes)
-SELECT id, 'normal', 1, 8, 10, 3, NULL FROM exercises WHERE name = 'Bent Over Rows' AND split_id = '2day' AND day = 1;
-
--- Deadlift
-INSERT INTO exercise_set_templates (exercise_id, type, order_index, target_reps_min, target_reps_max, default_sets, notes)
-SELECT id, 'normal',  1, 1, 1,  3, '@ 90% 1RM' FROM exercises WHERE name = 'Deadlift' AND split_id = '2day' AND day = 2
-UNION ALL
-SELECT id, 'backoff', 2, 5, 10, 2, NULL        FROM exercises WHERE name = 'Deadlift' AND split_id = '2day' AND day = 2;
-
--- Overhead Press
-INSERT INTO exercise_set_templates (exercise_id, type, order_index, target_reps_min, target_reps_max, default_sets, notes)
-SELECT id, 'top_set', 1, 4, 6, 1, NULL FROM exercises WHERE name = 'Overhead Press' AND split_id = '2day' AND day = 2
-UNION ALL
-SELECT id, 'backoff', 2, 6, 10, 2, NULL FROM exercises WHERE name = 'Overhead Press' AND split_id = '2day' AND day = 2;
-
--- Pull-ups
-INSERT INTO exercise_set_templates (exercise_id, type, order_index, target_reps_min, target_reps_max, default_sets, notes)
-SELECT id, 'normal', 1, 8, 10, 3, NULL FROM exercises WHERE name = 'Pull-ups' AND split_id = '2day' AND day = 2;
-
--- Dips
-INSERT INTO exercise_set_templates (exercise_id, type, order_index, target_reps_min, target_reps_max, default_sets, notes)
-SELECT id, 'normal', 1, 8, 10, 3, NULL FROM exercises WHERE name = 'Dips' AND split_id = '2day' AND day = 2;
-
--- Bulgarian Split Squats
-INSERT INTO exercise_set_templates (exercise_id, type, order_index, target_reps_min, target_reps_max, default_sets, notes)
-SELECT id, 'normal', 1, 8, 10, 2, NULL FROM exercises WHERE name = 'Bulgarian Split Squats' AND split_id = '2day' AND day = 2;
-```
+Seed SQL lives in [supabase/migrations/0003_seed.sql](supabase/migrations/0003_seed.sql) and later migrations (e.g. `0005_deadlift_backoff_template.sql`). Update there, not here — the tables above are the human-readable view; the migrations are the source of truth.
 
 ---
 
@@ -379,22 +315,19 @@ Dark mode only. No theme toggle in v1.
 
 ### Components
 
+This section captures UX *intent* and decisions that aren't visible from the code (states, behaviors, ARIA contracts). Exact Tailwind classes, paddings, and color tokens live in the components themselves — change them there, not here.
+
 #### Buttons
 
-* **Primary**: green (`accent`) background, near-black text (`accent-text`), 12px vertical padding, 16px horizontal, 8px border-radius
-* **Secondary**: transparent with `border` border, primary text
-* **Destructive**: transparent, red text — only used for delete actions (always paired with confirm dialog)
-* **Full width** on mobile for primary form actions
-* **Min height**: 44px
+* **Primary**: accent background, accent-text foreground. Full-width on mobile for form actions. Min height 44px.
+* **Secondary**: transparent with `border`, primary text.
+* **Destructive**: transparent, `text-destructive` — only for delete, always paired with the confirmation dialog.
 
 #### Inputs (Weight & Reps)
 
-* `inputMode="decimal"` for weight, `inputMode="numeric"` for reps
-* No native number spinners (no up/down arrows)
-* Large, centered text — `text-2xl` for legibility while training
-* Background: `bg-surface`, border: 1px `border`, focus: 2px `accent` ring
-* Tabular numerals
-* Placeholder shows the target rep range as a hint (e.g. "4–6")
+* `inputMode="decimal"` for weight, `inputMode="numeric"` for reps. No native number spinners.
+* Large, centered text — legible while training. Tabular numerals.
+* Placeholder shows the target rep range as a hint (e.g. "4–6").
 
 #### Set Row
 
@@ -403,11 +336,9 @@ Dark mode only. No theme toggle in v1.
 [ Weight (kg) ]  [ Reps ]
 ```
 
-* Label on top: medium weight, includes set type (Top Set / Back-off 1 / etc.)
-* Skip toggle on the right of the label — reads **"Skip"** when inactive; flips to **"Undo skip"** with a `RotateCcw` icon and an `accent` border/text when active (so it clearly invites a reversal, rather than reading as a static "Skipped" badge)
-* Inputs side by side below
-* Skipped state: row at 50% opacity, the input area is replaced with a centered placeholder block containing the word "Skipped" and a hint sub-line ("Tap 'Undo skip' above to enter values.")
-* 16px vertical padding between rows; 1px `border` divider only
+* Label on top, includes set type (Top Set / Back-off 1 / etc.).
+* Skip toggle reads **"Skip"** when inactive; flips to **"Undo skip"** with a `RotateCcw` icon when active — so it clearly invites a reversal, rather than reading as a static "Skipped" badge.
+* Skipped state: row at 50% opacity, input area replaced with a centered "Skipped" placeholder + hint sub-line ("Tap 'Undo skip' above to enter values.").
 
 #### Set Progress (Guided Entry)
 
@@ -418,102 +349,80 @@ Squat — Top Set                    Set 1 / 12
 ████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 ```
 
-* Header line: `[Exercise Name] — [Set Type]` (Title size, left) and `Set X / Y` counter (caption size, `text-secondary`, right, tabular numerals)
-* Thin horizontal bar — 4px tall, full-width, 2px border-radius
-* Filled portion: `accent` green; empty: `border` (`#27272A`)
-* Animates smoothly between states (150ms ease-out)
-* `Y` is the total count of working sets across all exercises in the workout
-* Warmup sets do **not** count toward `Y` (they're guidance only)
-* On the recap screen, the bar is full and reads `Set Y / Y`
+* Header: `[Exercise Name] — [Set Type]` (left) and `Set X / Y` counter (right).
+* `Y` is the total count of **working** sets across the workout — warmups do not count.
+* On the recap screen the bar is full and reads `Set Y / Y`.
+
+#### Sticky Footer (shared)
+
+Used by the Set Entry, Recap, and Workout Detail screens. Pinned to the bottom of the viewport above the bottom tab bar (`bottom: calc(64px + env(safe-area-inset-bottom))`) so the primary action is always thumb-reachable regardless of content height. Two buttons split equally, secondary left, primary right, each meeting the 44px touch-target minimum.
 
 #### Set Entry Screen
 
-A single screen showing one working set at a time. Layout, top to bottom:
+Single screen, one working set at a time. Layout top to bottom:
 
-1. **Set Progress** header (above)
-2. **Warmup section** (only for Squat / Bench / OHP / Deadlift, only on the *first working set* of that exercise, only if prior data exists — see Section 10)
-3. **Set inputs** — weight (kg) and reps, side by side, with the same input styling defined under "Inputs (Weight & Reps)"
-4. **Skip toggle** — top-right of the input row; copy and visuals per "Set Row" above
-5. **Validation helper** (conditional) — when the user has touched a field but the set is not yet valid, a single line of `text-muted` text appears below the inputs: "Enter weight and reps, or tap Skip." Suppressed before any interaction (no pre-emptive nagging).
-6. **Footer actions** — `Back` (secondary, left) and `Next Set` (primary, right). The footer is **sticky** to the bottom of the viewport, above the bottom tab bar (`bottom: calc(64px + env(safe-area-inset-bottom))`), so the primary action is always thumb-reachable regardless of content height. On the final set, `Next Set` is replaced with `Review`.
+1. **Set Progress** header
+2. **Warmup section** — only for the big four lifts, only on the *first working set* of that exercise, only if prior data exists (see §10)
+3. **Set inputs** (weight, reps)
+4. **Skip toggle** (top-right of input row)
+5. **Validation helper** — when the user has touched a field but the set is not yet valid, one line of `text-muted` text appears: "Enter weight and reps, or tap Skip." Suppressed before any interaction (no pre-emptive nagging).
+6. **Sticky footer** — `Back` (secondary) and `Next Set` (primary). On the final set, `Next Set` is replaced with `Review`. `Back` is natively disabled on the first set.
 
-Validation gate: while either weight or reps is invalid (and the set is not skipped), `Next Set` / `Review` is visually dimmed (`opacity-50`) and carries `aria-disabled="true"` — but **remains tappable**. Tapping the dimmed button focuses the first empty input rather than failing silently (a silent disabled button confuses users mid-workout). Once both inputs are valid (or the set is skipped), the button reaches its full-color, fully-active state.
-
-`Back` uses the native `disabled` attribute (no alternative action) and is disabled on the first set of the workout.
+**Validation gate (canonical):** while either weight or reps is invalid (and the set is not skipped), the primary button is visually dimmed and carries `aria-disabled="true"` — but **remains tappable**. Tapping the dimmed button focuses the first empty input rather than failing silently (a silent disabled button confuses users mid-workout). Once both inputs are valid (or the set is skipped), the button reaches its full-color, fully-active state.
 
 #### Recap Screen
 
-Shown after the user clears the final set. Layout, top to bottom:
+Shown after the user clears the final set. Layout:
 
-1. Heading: "Review your workout", with a `text-secondary` sub-line: "Tap any set to edit." (signals that the rows below are interactive).
-2. For each exercise in `order_index` order:
-   * Exercise name (Title size)
-   * One row per set, in `order_index` order. Each row is a button — minimum **44px** tall — with the set type label on the left, `[weight × reps]` (or "Skipped") on the right, followed by a small `ChevronRight` (16px, `text-muted`, `aria-hidden`) that signals tap-ability without adding decoration. Tabular numerals on all values. Skipped rows render at 50% opacity.
-3. **Footer actions** — `Back` (secondary, returns to the final set with values preserved) and `Save Workout` (primary). The footer is **sticky** to the bottom of the viewport, matching the entry-screen footer pattern.
+1. Heading: "Review your workout", with a sub-line: "Tap any set to edit." — signals that rows below are interactive.
+2. Per exercise in `order_index` order: exercise name, then one row per set in `order_index` order. Each row is a 44px button with the set type label on the left, `[weight × reps]` (or "Skipped") on the right, and a small chevron suggesting tap-ability. Skipped rows render at 50% opacity.
+3. **Sticky footer** — `Back` (returns to the final set with values preserved) and `Save Workout`.
 
-Tapping a recap row jumps the user back to that specific set in the entry flow with values preserved. While in this "edit-from-recap" mode:
+**Edit-from-recap mode:** tapping a recap row jumps to that specific set in the entry flow with values preserved. In this mode:
 
-* The primary footer button is relabeled **Done** (in place of `Next Set` / `Review`)
-* Tapping **Done** returns directly to the recap — the user is **not** stepped through any subsequent sets
-* `Back` still moves to the previous set if the user wants to fix an adjacent entry; the edit-from-recap mode persists, so a later `Done` still returns to the recap
+* The primary footer button is relabeled **Done** (in place of `Next Set` / `Review`).
+* Tapping **Done** returns directly to the recap — the user is **not** stepped through subsequent sets.
+* `Back` still moves to the previous set if the user wants to fix an adjacent entry; the mode persists, so a later `Done` still returns to the recap.
 
-The mode clears as soon as the user lands back on the recap. Re-entering edit on a different row starts a fresh edit-from-recap session.
+The mode clears as soon as the user lands back on the recap. Re-entering edit on a different row starts a fresh session.
 
 #### Day Picker (Workout Creation)
 
-* Two large buttons (A / B), full-width, ~80px tall
-* Selected state: 2px `accent` border, `accent` text
-* Below selected day: list of exercise names, `text-secondary`, no decoration
-* A `Start Workout` primary button confirms the selection and enters the guided flow
+Two large buttons (A / B), full-width. Selected state shows an accent border + accent text and reveals a list of exercise names below. A `Start Workout` primary button confirms the selection and enters the guided flow.
 
 #### Workout History List Item
 
-* Each item: card with `bg-surface`, 16px padding, 8px border-radius
-* **Top row**: workout date (Title size, `text-primary`, tabular numerals) — see "Date Formatting" below for the exact format
-* **Bottom row**: `Split name · Day label` in `text-secondary`, caption size
+Card with the workout date (Title size, tabular numerals) on top and `Split name · Day label` (caption, `text-secondary`) below — see "Date Formatting" below for the exact date format.
 
 #### Tabs
 
-A horizontal tab bar used to switch between sibling views on the same page (currently: the analytics page).
+A horizontal tab bar used to switch between sibling views on the same page (currently only `/analytics`).
 
-* Tab row sits at the top of the panel, with a 1px `border` divider running underneath
-* Active tab: 2px `accent` bottom border, `text-primary` label
-* Inactive tab: transparent bottom border, `text-muted` label (hover → `text-secondary`)
-* **Sticky** below the top nav (`top: 56px`) so the tabs remain visible while scrolling through long panels
-* Horizontal scroll if tabs overflow the viewport width
-* Min height 44px per tab (touch target)
-* ARIA: `role="tablist"` on the bar, `role="tab"` + `aria-selected` + `aria-controls` on each button, `role="tabpanel"` + `aria-labelledby` on the panel
+* Active tab: accent bottom border, primary text. Inactive: muted text, no border.
+* **Sticky** below the top nav so it remains visible while scrolling long panels.
+* Horizontal scroll if tabs overflow. 44px min height per tab.
+* ARIA: `role="tablist"`, `role="tab"` + `aria-selected` + `aria-controls`, `role="tabpanel"` + `aria-labelledby`.
 
 #### Confirmation Dialog
 
-Shared pattern for the discard-workout dialog (§9 → Leaving the Guided Flow) and the delete-workout dialog (§9 → Workout Detail).
+Shared pattern for the discard-workout dialog (see "Leaving the Guided Flow" below) and the delete-workout dialog (§9 → Workout Detail).
 
-* Rendered into `document.body` via React portal — escapes sticky footers, tab bars, and any local stacking context that would otherwise clip the dialog
-* Backdrop: `fixed inset-0 bg-black/60`, centered on all viewports (`flex items-center justify-center p-4`), `z-[100]` so it sits above the sticky entry/recap footer and the bottom tab bar
-* Panel: `bg-surface`, 8px border-radius, 24px padding, max-width 384px (`max-w-sm`), full-width below that
-* Body scroll is locked while the dialog is open (`document.body.style.overflow = "hidden"`) and the prior value is restored on close
-* Two actions, right-aligned: secondary **Cancel** (transparent with `border`) on the left, primary action on the right — accent style for non-destructive confirmations, destructive style (outlined `text-destructive`) for delete
-* `role="dialog"` + `aria-modal="true"`
-* In-flight state: while the primary action is pending, both buttons are `disabled` and the primary action's label switches to a verb form ("Deleting…")
+* Rendered into `document.body` via React portal — escapes sticky footers, tab bars, and any local stacking context that would otherwise clip the dialog.
+* Centered on all viewports, sits above the sticky entry/recap footer and the bottom tab bar.
+* Body scroll is locked while the dialog is open; the prior value is restored on close.
+* Two actions, right-aligned: **Cancel** (secondary) on the left, primary action on the right — accent style for non-destructive confirmations, destructive style for delete.
+* `role="dialog"` + `aria-modal="true"`.
+* In-flight state: while the primary action is pending, both buttons are disabled and the primary label switches to a verb form ("Deleting…").
 
 #### Analytics Graphs
 
-* Recharts `<LineChart>`, single line per chart in `accent` green
-* Gridlines: subtle `border` color, dashed
-* Axis labels: `text-secondary`, caption size
-* No legend (single line per chart)
-* Empty state: centered text, `text-muted`
+Recharts `<LineChart>`, one accent line per chart, subtle dashed gridlines, no legend. Empty state: centered muted text.
 
 ### Navigation
 
 #### Top Navigation Bar
 
-* Fixed top, full-width, ~56px tall
-* Background: `bg-surface` with 1px bottom border
-* Left corner: app logo/wordmark ("LOG") linking to `/workouts`
-* Logo style: `text-xl font-semibold text-accent`
-* Visible on all authenticated routes
-* Hidden on auth screens (`/login`, `/signup`, `/reset-password`)
+Fixed top, ~56px tall. Left-corner "LOG" wordmark links to `/workouts`. Visible on all authenticated routes; hidden on auth screens (`/login`, `/signup`, `/reset-password`).
 
 #### Bottom Tab Bar
 
@@ -523,24 +432,15 @@ Shared pattern for the discard-workout dialog (§9 → Leaving the Guided Flow) 
 | Analytics  | `LineChart`    | `/analytics`   |
 | Profile    | `User`         | `/profile`     |
 
-* Fixed bottom, ~64px tall, accounts for `safe-area-inset-bottom`
-* Active tab: `accent` icon + label
-* Inactive: `text-muted`
-* Background: `bg-surface` with 1px top border
-* Hidden on auth screens (`/login`, `/signup`, `/reset-password`)
+Fixed bottom, ~64px tall, accounts for `safe-area-inset-bottom`. Active tab uses accent; inactive uses muted. Hidden on auth screens.
 
 #### New Workout Button
 
-* Positioned at the bottom of the `/workouts` screen, above the bottom tab bar
-* Full-width primary button ("New Workout")
-* Fixed position so it's always thumb-reachable
-* Only visible on the workout list page
+Full-width primary button pinned to the bottom of `/workouts` only, above the bottom tab bar, always thumb-reachable.
 
 #### Leaving the Guided Flow
 
-* During the guided entry flow (`/workouts/new` past day selection, or `/workouts/[id]/edit`), tapping the logo, a bottom tab, or the browser back button shows a **confirmation dialog**: "Discard this workout? Your progress will be lost."
-* Confirming discards client state and navigates away. Cancelling keeps the user on the current set.
-* The recap screen is treated the same way — leaving without tapping **Save Workout** discards the workout.
+During the guided entry flow (`/workouts/new` past day selection, or `/workouts/[id]/edit`), tapping the logo, a bottom tab, or the browser back button shows a confirmation dialog: *"Discard this workout? Your progress will be lost."* Confirming discards client state and navigates away; cancelling keeps the user on the current set. The recap screen is treated identically — leaving without tapping **Save Workout** discards the workout.
 
 > **Profile page (v1 minimum)**: shows the user's email, a sign-out button, and a "Reset password" link.
 
@@ -578,10 +478,10 @@ The analytics chart X-axis uses a separate compact format: `May 4` (month short 
 * WCAG AA contrast on all text/background combinations
 * Minimum 44 × 44px touch targets for all interactive elements
 * Focus rings: 2px `accent` outline (keyboard focus only)
-* All icon-only buttons have `aria-label`
+* All icon-only buttons have `aria-label`; decorative icons use `aria-hidden="true"`
 * Semantic HTML (`<main>`, `<nav>`, etc.)
 * Form inputs always have associated `<label>` elements
-* Validation-gated primary actions use `aria-disabled` (not the native `disabled` attribute) so the button stays focusable and tappable. Tapping a dimmed button must do something useful — typically focus the first empty input — rather than fail silently.
+* Validation-gated primary actions: see §8 → Set Entry Screen for the canonical contract.
 
 ### Don'ts
 
@@ -597,99 +497,45 @@ The analytics chart X-axis uses a separate compact format: `May 4` (month short 
 
 ### Workout Creation (`/workouts/new`)
 
-The flow has three phases on a single route, advancing the user through each via in-page state:
+Three phases on a single route, advancing via in-page state. The visual contract for each screen lives in §8 → Components; the rules below cover only flow-level behavior.
 
-#### Phase 1 — Day Selection
+**Phase 1 — Day Selection.** User picks Day A or B; an inline preview shows the exercise names for that day (order from `exercises.order_index`, names only). Tapping **Start Workout** loads exercises and templates into client state and enters Phase 2. No DB writes.
 
-1. User selects Day (A or B)
-2. **Inline preview** appears below the day picker showing the list of exercise names for the selected day (order matches `exercises.order_index`; names only, no set/rep schemes)
-3. User taps **Start Workout** to enter Phase 2
+**Phase 2 — Guided Set-by-Set Entry.** Sets are ordered by exercise `order_index`, then template `order_index`. One working set on screen at a time. To advance, the user must either enter valid weight (> 0 kg) + reps (≥ 1) or toggle **Skip**. **Back** preserves values; **Next Set** becomes **Review** on the final set. Warmup guidance (§10) renders above the inputs on the first working set of a big-four lift when prior data exists. Validation-gate behavior: see §8 → Set Entry Screen.
 
-No database writes occur in Phase 1. The app loads the exercises and set templates for the chosen day into client state, generating an in-memory ordered list of working sets.
-
-#### Phase 2 — Guided Set-by-Set Entry
-
-* Only **one working set** is shown on screen at a time
-* Sets are ordered by: exercise `order_index`, then template `order_index`
-* For each set, the user must either:
-  * Enter a valid weight (> 0 kg) and reps (≥ 1), **or**
-  * Toggle **Skip** on
-* Once one of the above is true, the **Next Set** button reaches its fully-active state
-* Tapping **Next Set** advances to the next working set; on the final set, the button reads **Review** and advances to Phase 3
-* While the set is incomplete, the button is visually dimmed but still tappable — tapping it focuses the first empty input rather than advancing (see Section 8 → Set Entry Screen for the full validation-feedback contract)
-* Tapping **Back** returns to the previous set with values preserved (disabled on the first set)
-* All in-progress data is held in client state only; nothing is persisted yet
-* Warmup guidance (Section 10) renders above the set inputs on the *first working set* of any of the big four lifts, when prior data exists
-
-#### Phase 3 — Recap & Save
-
-* The recap screen lists every exercise with each set's logged values (or "Skipped")
-* Tapping any recap row jumps back to that set in Phase 2 (values preserved). In this edit-from-recap mode the primary button reads **Done** and returns directly to the recap on tap, regardless of position in the working-set list — the user is never re-walked through subsequent sets
-* Tapping **Save Workout** triggers a single transaction that inserts:
-  * One `workouts` row (`split_id` hardcoded to `'2day'`, `day` set from selection)
-  * One `workout_exercises` row per exercise, in `order_index` order
-  * One `sets` row per working set, with `reps`, `weight`, `is_skipped`, and `order_index` populated from client state
-* On success, redirects to `/workouts`
-* On failure, the user remains on the recap with a non-blocking error message and may retry
+**Phase 3 — Recap & Save.** Recap lists every exercise with each set's logged values (or "Skipped"). Tapping a row enters edit-from-recap mode (see §8 → Recap Screen). **Save Workout** issues one transaction that inserts a `workouts` row (`split_id = '2day'`, `day` from selection), a `workout_exercises` row per exercise in `order_index` order, and a `sets` row per working set carrying `reps`, `weight`, `is_skipped`, and `order_index`. On success redirects to `/workouts`; on failure the user stays on the recap with a non-blocking error and may retry.
 
 ---
 
 ### Workout History (`/workouts`)
 
-* Lists workouts sorted newest first
-* Each entry shows: **Split name · Day label · Date**
-* Empty state (no workouts yet): message + **"Start Workout"** button
-* The fixed **New Workout** button sits at the bottom of the screen, above the tab bar, on every state of this page
+Lists workouts newest first. Each entry shows **Split name · Day label · Date**. Empty state: message + **Start Workout** button. The fixed **New Workout** button sits at the bottom of the screen, above the tab bar, on every state of this page.
 
 ---
 
 ### Workout Detail (`/workouts/[id]`)
 
-* **Read-only recap** of a saved workout
-* **Header**: workout date (Display size, tabular) on top; `Split name · Day label` (caption, `text-secondary`) below — same hierarchy as the workout list item. The edit screen (`/workouts/[id]/edit`) uses the same header.
-* Same layout as the Recap Screen component (Section 8), minus the `Save Workout` / `Back` buttons
-* **Sticky footer actions** at the bottom of the viewport (matching the entry/recap footer pattern, `bottom: calc(64px + env(safe-area-inset-bottom))`):
-  * **Delete** (left, secondary destructive style — outlined, `text-destructive`, with a `Trash2` icon and "Delete" label) — opens the confirmation dialog
-  * **Edit** (right, primary `accent` style with a `Pencil` icon and "Edit" label) — routes to `/workouts/[id]/edit`
-* Both buttons fill the footer equally (`flex-1`) and meet the 44px touch-target minimum
-* Warmup section is **not** shown on this screen (warmups are guidance for live entry only)
+Read-only recap of a saved workout. Header matches the history-list-item hierarchy: workout date (Display size, tabular) on top, `Split name · Day label` below. The body uses the same layout as the Recap Screen (§8) minus the Save/Back buttons. **Sticky footer** (see §8 → Sticky Footer) holds **Delete** (left, destructive — opens the confirmation dialog) and **Edit** (right, accent — routes to `/workouts/[id]/edit`). The edit screen uses the same header. No warmup section — warmups are guidance for live entry only.
 
 ---
 
 ### Edit Workout (`/workouts/[id]/edit`)
 
-* Re-runs Phase 2 + Phase 3 of the guided flow with all set values preloaded from the saved workout
-* Day selection is skipped (the day is already determined)
-* Skip state is preserved and toggleable
-* Tapping **Save Workout** issues `UPDATE` statements against existing `sets` rows; no new `workouts` or `workout_exercises` rows are created
-* Validation rules (Section 5) apply identically to the create flow
-* Cancelling (via the discard dialog) leaves the saved workout untouched
+Re-runs Phase 2 + Phase 3 with all set values preloaded. Day selection is skipped. Skip state is preserved and toggleable. Validation rules (§5) apply identically. **Save Workout** issues `UPDATE`s against existing `sets` rows — no new `workouts` or `workout_exercises` rows. Cancelling via the discard dialog leaves the saved workout untouched.
 
 ---
 
 ### Delete Workout
 
-* Confirmation dialog required before deletion
-* On confirm: workout and all related records deleted via cascade
+Confirmation dialog required. On confirm, the workout and all related records are deleted via cascade.
 
 ---
 
 ### User Actions
 
-Allowed:
+Allowed: enter weight + reps, skip/unskip, move forward/backward through sets, jump to a specific set from recap.
 
-* Enter weight (kg) and reps
-* Mark set as skipped / unskip
-* Move forward and backward through sets during entry
-* Jump to a specific set from the recap screen
-
-Not allowed:
-
-* Add sets
-* Delete sets
-* Modify exercise structure or order
-* Log warmups (warmups are guidance only)
-* Skip the recap (Save Workout is reachable only via the recap screen)
+Not allowed: add or delete sets, modify exercise structure or order, log warmups, skip the recap (Save Workout is reachable only via the recap screen).
 
 ---
 
@@ -823,74 +669,11 @@ The page contains **two tabs**, each with **four line graphs** (one per main lif
 
 ## 12. Row Level Security (RLS)
 
-RLS is enabled on all user-data tables. All policies use `auth.uid()`.
+RLS is enabled on all user-data tables. `workouts` is owned directly by `user_id` (SELECT/INSERT/UPDATE/DELETE all gated on `auth.uid() = user_id`). `workout_exercises` and `sets` inherit ownership transitively through `workouts`. Read-only template tables (`exercises`, `exercise_splits`, `exercise_set_templates`) are readable by any authenticated user.
 
-### `workouts`
+Policy definitions live in [supabase/migrations/0002_rls.sql](supabase/migrations/0002_rls.sql). Update there, not here.
 
-```sql
--- SELECT
-CREATE POLICY "Users can view own workouts"
-ON workouts FOR SELECT
-USING (auth.uid() = user_id);
-
--- INSERT
-CREATE POLICY "Users can insert own workouts"
-ON workouts FOR INSERT
-WITH CHECK (auth.uid() = user_id);
-
--- UPDATE
-CREATE POLICY "Users can update own workouts"
-ON workouts FOR UPDATE
-USING (auth.uid() = user_id);
-
--- DELETE
-CREATE POLICY "Users can delete own workouts"
-ON workouts FOR DELETE
-USING (auth.uid() = user_id);
-```
-
-### `workout_exercises`
-
-```sql
--- Indirect ownership via workouts
-CREATE POLICY "Users can manage own workout_exercises"
-ON workout_exercises FOR ALL
-USING (
-  EXISTS (
-    SELECT 1 FROM workouts w
-    WHERE w.id = workout_exercises.workout_id
-    AND w.user_id = auth.uid()
-  )
-);
-```
-
-### `sets`
-
-```sql
--- Indirect ownership via workout_exercises → workouts
-CREATE POLICY "Users can manage own sets"
-ON sets FOR ALL
-USING (
-  EXISTS (
-    SELECT 1 FROM workout_exercises we
-    JOIN workouts w ON w.id = we.workout_id
-    WHERE we.id = sets.workout_exercise_id
-    AND w.user_id = auth.uid()
-  )
-);
-```
-
-### `exercises`, `exercise_splits`, `exercise_set_templates`
-
-* Read-only for all authenticated users (seed/template data)
-
-```sql
-CREATE POLICY "Authenticated users can read exercises"
-ON exercises FOR SELECT
-USING (auth.role() = 'authenticated');
-
--- Repeat for exercise_splits and exercise_set_templates
-```
+Manual verification checklist after policy changes: [tests/RLS-CHECKLIST.md](tests/RLS-CHECKLIST.md).
 
 ---
 
@@ -992,69 +775,20 @@ Documented manual test, run once after deployment and after any RLS policy chang
 
 ---
 
-## 16. Acceptance Criteria
+## 16. Post-Deploy Smoke Checklist
 
-### Auth & Routing
-* User can sign up, log in, and reset password
-* Unauthenticated users are redirected to `/login`
+A short end-to-end sweep to run after deploys. Decision-level requirements live in the sections above; this list only covers the integration paths that automated tests don't.
 
-### Workout Flow
-* User selects a day (A or B) to start a workout
-* Selecting a day shows an inline preview of exercise names for that day
-* Tapping **Start Workout** enters the guided entry flow; no DB rows are created at this point
-* Only one working set is displayed at a time, in `exercise.order_index` then `template.order_index` order
-* **Next Set** is disabled until the current set has valid weight + reps OR is marked skipped
-* **Back** returns to the previous set with values preserved (disabled on the first set)
-* On the final set, the primary button reads **Review** and advances to the recap
-* The recap lists every exercise with each set's weight × reps (or "Skipped")
-* Tapping any recap row jumps to that set in the entry flow with values preserved; the primary button reads **Done** and returns directly to the recap when tapped
-* **Save Workout** on the recap inserts `workouts`, `workout_exercises`, and `sets` rows in one transaction, then redirects to `/workouts`
-* Navigating away from any phase of the guided flow (logo, tab bar, browser back) prompts a discard confirmation
-* Fixed number of sets per exercise (no add/remove)
-* Set types (top set, back-off, normal) are respected
-* User can log weight (kg) and reps; weight and reps are required unless the set is skipped
-* User can skip/unskip the current set
-* Top-of-screen progress shows `Exercise Name — Set Type` and `Set X / Y` across the entire workout
-
-### Warmups
-* Warmups are shown only for Squat, Bench, Overhead Press, and Deadlift
-* Warmup weights are computed from previous performance and rounded to 5 kg
-* Warmup weights below 20 kg are clamped to 20 kg
-* Warmup section is hidden for first-time exercises (no prior data)
-* Warmups are not editable, not logged, and not stored in the database
-
-### History & Detail
-* Workout history shows Split · Day · Date, newest first
-* A fixed **New Workout** button sits at the bottom of `/workouts`, above the bottom tab bar
-* Empty history shows empty state + Start Workout button
-* `/workouts/[id]` shows a read-only recap of the saved workout (no warmup section)
-* `/workouts/[id]` exposes **Edit** and **Delete** as full-width labeled buttons in a sticky footer above the bottom tab bar
-* Delete requires confirmation; cascades to all related records
-* Edit (`/workouts/[id]/edit`) re-runs the guided flow with values preloaded; saving issues `UPDATE`s against existing `sets`
-
-### Analytics
-* `/analytics` page renders two tabs: **Top Set Weight** (default) and **Estimated 1RM**
-* Each tab shows a line graph per main lift (Squat, Bench, Deadlift, OHP)
-* The tab bar is sticky below the top nav so it remains visible while scrolling
-* Skipped sets are excluded from all calculations
-* Empty state shown when no data exists for a lift
-
-### Data & Security
-* Data persists correctly per user
-* Workouts are private (RLS enforced)
-* App is deployed and usable on Vercel
-
-### Design & Navigation
-* App is dark mode only and uses the defined color palette
-* Top navigation bar is visible on all authenticated routes; left-corner logo links to `/workouts`
-* Bottom tab bar is visible on all authenticated routes
-* Leaving the guided entry flow via logo, tab bar, or back button prompts a discard confirmation
-* Inter font loads correctly with tabular numerals on all numeric displays
-* All touch targets meet the 44×44px minimum
-* `/profile` page shows email, sign-out, and password reset link
-* Confirmation dialogs (discard, delete) render via a portal to `document.body`, lock body scroll while open, and sit above sticky footers and the bottom tab bar
-* Workout list, detail, and edit screens display the workout date as the primary heading and the `Split · Day` as the secondary label
-* Relative dates use a calendar-day diff so workouts logged late at night don't read as "Today" the following morning
+* Sign up → land on `/workouts` empty state. Log out, log in, password-reset email arrives.
+* Create a Day A workout: every set screen reachable, **Back** preserves values, recap row tap jumps + **Done** returns to recap, **Save Workout** redirects to `/workouts` and the new row appears.
+* Repeat the create flow for Day B, skipping one set — confirm "Skipped" renders in recap and detail.
+* Open the saved workout: detail shows date heading, `Split · Day` sub-line, every set, no warmup section.
+* Edit the workout: values preloaded, save issues UPDATEs (no duplicate row in `/workouts`).
+* Delete the workout: confirmation dialog appears, confirm deletes, list updates.
+* Discard flow: mid-entry, tap logo / bottom tab / browser back → confirmation dialog → Cancel keeps state, Confirm discards.
+* Warmups: first time logging Squat/Bench/OHP/Deadlift → no warmup section. After at least one logged session → warmup section appears above the first working set with correct percentages (50/70/90% rounded to 5 kg, floor 20 kg).
+* `/analytics`: both tabs render, four lifts each, sticky tab bar stays visible while scrolling, skipped sets excluded.
+* RLS: run [tests/RLS-CHECKLIST.md](tests/RLS-CHECKLIST.md) once per policy change.
 
 ---
 
