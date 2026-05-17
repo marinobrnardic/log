@@ -45,11 +45,23 @@ export function DayPicker({
       </div>
 
       {preview && (
-        <ul className="space-y-1 text-(--color-text-secondary)">
-          {preview.map((ex) => (
-            <li key={ex.id}>{ex.name}</li>
-          ))}
-        </ul>
+        <section
+          aria-label="Exercises"
+          className="bg-(--color-bg-surface) rounded-lg p-4 space-y-2"
+        >
+          <h3 className="text-sm font-medium text-(--color-text-secondary)">
+            Exercises
+          </h3>
+          <ul className="text-sm space-y-1 tabular">
+            {preview.map((ex, i) => (
+              <li key={ex.id} className="flex items-baseline justify-between gap-2">
+                <span>
+                  {i + 1}. {ex.name}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       <button
