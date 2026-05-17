@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "./database.types";
 
 const AUTH_ROUTES = ["/login", "/signup", "/reset-password"];
-const PUBLIC_PREFIXES = ["/_next", "/auth", "/favicon", "/api/health"];
+const PUBLIC_PREFIXES = ["/_next", "/auth", "/favicon", "/api/health", "/offline"];
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });

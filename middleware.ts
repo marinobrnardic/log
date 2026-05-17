@@ -8,9 +8,10 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Skip Next internals and static files. Everything else flows through
-     * the auth check so we can redirect unauthenticated users to /login.
+     * Skip Next internals, static files, and PWA assets. Everything else
+     * flows through the auth check so we can redirect unauthenticated users
+     * to /login.
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|icon|icon0|icon1|apple-icon|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

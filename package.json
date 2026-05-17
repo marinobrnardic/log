@@ -20,12 +20,14 @@
     "recharts": "^2.13.3"
   },
   "devDependencies": {
+    "@serwist/next": "^9.5.11",
     "@tailwindcss/postcss": "^4.0.0-beta.3",
     "@types/node": "^22.9.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "eslint": "^9.14.0",
     "eslint-config-next": "^15.0.3",
+    "serwist": "^9.5.11",
     "tailwindcss": "^4.0.0-beta.3",
     "typescript": "^5.6.3",
     "vitest": "^2.1.4"

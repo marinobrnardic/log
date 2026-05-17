@@ -11,6 +11,15 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "LOG",
   description: "Workout logger",
+  applicationName: "LOG",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "LOG",
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
 export const viewport: Viewport = {

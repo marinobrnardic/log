@@ -1,5 +1,12 @@
 import type { NextConfig } from "next";
+import withSerwistInit from "@serwist/next";
 import path from "node:path";
+
+const withSerwist = withSerwistInit({
+  swSrc: "src/sw.ts",
+  swDest: "public/sw.js",
+  disable: process.env.NODE_ENV === "development",
+});
 
 const nextConfig: NextConfig = {
   // Pin the workspace root so an unrelated lockfile in $HOME doesn't
@@ -7,4 +14,4 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: path.resolve(__dirname),
 };
 
-export default nextConfig;
+export default withSerwist(nextConfig);
