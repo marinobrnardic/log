@@ -171,6 +171,27 @@ export type Database = {
         };
         Relationships: [];
       };
+      user_settings: {
+        Row: {
+          user_id: string;
+          weight_increment: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          weight_increment?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          weight_increment?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: { [_ in never]: never };
     Functions: {

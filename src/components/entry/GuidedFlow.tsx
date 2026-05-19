@@ -36,6 +36,8 @@ export interface GuidedFlowDataset {
   dayA: { exercises: ExerciseRow[]; templates: SetTemplateRow[] };
   dayB: { exercises: ExerciseRow[]; templates: SetTemplateRow[] };
   history: SavedWorkout[];
+  /** User's configured weight bump for pre-filled top-of-range sets (kg). */
+  weightIncrement: number;
 }
 
 interface Props {
@@ -101,7 +103,14 @@ function FlowContent({
   const onSelectDay = useCallback(
     (day: 1 | 2) => {
       const { exercises, templates } = day === 1 ? dataset.dayA : dataset.dayB;
-      dispatch({ type: "selectDay", day, exercises, templates });
+      dispatch({
+        type: "selectDay",
+        day,
+        exercises,
+        templates,
+        history: dataset.history,
+        weightIncrement: dataset.weightIncrement,
+      });
     },
     [dataset, dispatch],
   );

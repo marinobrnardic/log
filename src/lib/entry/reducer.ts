@@ -1,10 +1,12 @@
 import type {
   ExerciseRow,
+  SavedWorkout,
   SetTemplateRow,
   SetValue,
   WorkoutPlan,
 } from "@/lib/domain/types";
 import { buildWorkoutPlan } from "@/lib/domain/sets";
+import { getSuggestedWeight } from "@/lib/domain/progression";
 
 export type Phase = "day" | "entry" | "recap";
 
@@ -25,7 +27,14 @@ export interface EntryState {
 }
 
 export type EntryAction =
-  | { type: "selectDay"; day: 1 | 2; exercises: ExerciseRow[]; templates: SetTemplateRow[] }
+  | {
+      type: "selectDay";
+      day: 1 | 2;
+      exercises: ExerciseRow[];
+      templates: SetTemplateRow[];
+      history: SavedWorkout[];
+      weightIncrement: number;
+    }
   | { type: "start" }
   | { type: "setField"; field: "weight" | "reps"; value: string }
   | { type: "toggleSkip" }
@@ -65,9 +74,14 @@ export function entryReducer(state: EntryState, action: EntryAction): EntryState
   switch (action.type) {
     case "selectDay": {
       const plan = buildWorkoutPlan(action.day, action.exercises, action.templates);
-      // Preserve values if user re-selects the same day; otherwise reset.
-      const keep = state.day === action.day ? state.values : {};
-      return { ...state, day: action.day, plan, values: keep, returnToRecap: false };
+      // Preserve values if user re-selects the same day (don't clobber typed-in
+      // input); otherwise seed each working set with a suggested weight from
+      // history. Reps stay empty — the user always logs what they actually did.
+      const reselectingSameDay = state.day === action.day;
+      const values: Record<string, SetValue> = reselectingSameDay
+        ? state.values
+        : seedSuggestedValues(plan, action.history, action.weightIncrement);
+      return { ...state, day: action.day, plan, values, returnToRecap: false };
     }
     case "start": {
       if (!state.plan) return state;
@@ -140,6 +154,33 @@ export function entryReducer(state: EntryState, action: EntryAction): EntryState
       return { ...state, dirty: false };
     }
   }
+}
+
+/** Seed initial set values with weight suggestions from history. Reps are
+ *  intentionally left blank — they're what the user is logging today. Sets
+ *  with no matching history get the empty default. Never marks state dirty:
+ *  this runs from `selectDay`, which is a no-input action. */
+function seedSuggestedValues(
+  plan: WorkoutPlan,
+  history: SavedWorkout[],
+  increment: number,
+): Record<string, SetValue> {
+  const out: Record<string, SetValue> = {};
+  for (const ws of plan.workingSets) {
+    const suggested = getSuggestedWeight({
+      exerciseName: ws.exerciseName,
+      setType: ws.setType,
+      indexInExercise: ws.indexInExercise,
+      targetRepsMax: ws.targetRepsMax,
+      history,
+      increment,
+    });
+    out[ws.key] =
+      suggested != null
+        ? { weight: String(suggested), reps: "", isSkipped: false }
+        : emptyValue();
+  }
+  return out;
 }
 
 /** Validation gate: can the user advance from the current set? */

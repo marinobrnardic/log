@@ -5,6 +5,10 @@ import type {
   SetTemplateRow,
 } from "@/lib/domain/types";
 import type { Json, SetType } from "@/lib/supabase/database.types";
+import {
+  DEFAULT_WEIGHT_INCREMENT,
+  type WeightIncrement,
+} from "@/lib/domain/progression";
 
 /** Exercises + their templates for the chosen day, ordered for the entry flow. */
 export async function getExercisesForDay(day: 1 | 2): Promise<{
@@ -196,5 +200,53 @@ export async function updateWorkoutSets(
 export async function deleteWorkout(id: string): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase.from("workouts").delete().eq("id", id);
+  if (error) throw error;
+}
+
+/** Read the current user's preferred weight increment (kg). Returns the
+ *  default when no settings row exists yet — we do not auto-insert on read.
+ *  RLS limits the select to the caller's own row.
+ *
+ *  Resilience: if migration 0006 hasn't been applied yet (table missing /
+ *  not in the schema cache), we log and fall back to the default rather
+ *  than crashing the page. Writes still throw so the user sees the failure
+ *  when actively saving a setting. */
+export async function getWeightIncrement(): Promise<number> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("user_settings")
+    .select("weight_increment")
+    .maybeSingle();
+  if (error) {
+    if (isMissingTableError(error)) {
+      console.warn(
+        "[user_settings] table missing — using default weight increment. " +
+          "Apply migration 0006_user_settings.sql to enable per-user settings.",
+      );
+      return DEFAULT_WEIGHT_INCREMENT;
+    }
+    throw error;
+  }
+  return data?.weight_increment ?? DEFAULT_WEIGHT_INCREMENT;
+}
+
+function isMissingTableError(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const code = (err as { code?: string }).code;
+  // 42P01: Postgres "undefined_table". PGRST205: PostgREST schema cache miss.
+  return code === "42P01" || code === "PGRST205";
+}
+
+/** Upsert the current user's weight increment. Caller is responsible for
+ *  validating `value` against the allowed set; the DB enforces it too. */
+export async function upsertWeightIncrement(value: WeightIncrement): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const { error } = await supabase
+    .from("user_settings")
+    .upsert({ user_id: user.id, weight_increment: value }, { onConflict: "user_id" });
   if (error) throw error;
 }

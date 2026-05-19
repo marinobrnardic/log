@@ -1,14 +1,18 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { signOutAction } from "@/actions/auth";
+import { getWeightIncrement } from "@/lib/db/queries";
+import { WeightIncrementSetting } from "@/components/profile/WeightIncrementSetting";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProfilePage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [{ data: userData }, weightIncrement] = await Promise.all([
+    supabase.auth.getUser(),
+    getWeightIncrement(),
+  ]);
+  const user = userData.user;
 
   return (
     <div className="space-y-6">
@@ -18,6 +22,8 @@ export default async function ProfilePage() {
         <div className="text-sm text-(--color-text-secondary)">Email</div>
         <div className="tabular">{user?.email ?? "—"}</div>
       </div>
+
+      <WeightIncrementSetting current={weightIncrement} />
 
       <Link
         href="/reset-password"
