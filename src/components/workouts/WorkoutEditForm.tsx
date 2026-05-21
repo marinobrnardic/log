@@ -2,12 +2,20 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Pencil } from "lucide-react";
 import { EditableSetRow } from "./EditableSetRow";
+import { DatePickerSheet } from "@/components/inputs/DatePickerSheet";
 import { DiscardDialog } from "@/components/entry/DiscardDialog";
 import { useRegisterFlowGuard } from "@/components/nav/FlowGuardContext";
-import { updateWorkoutAction } from "@/actions/workouts";
+import { updateWorkoutAction, updateWorkoutDateAction } from "@/actions/workouts";
 import { setLabel } from "@/lib/domain/sets";
-import { formatWeight, dayLabel, formatWorkoutDate } from "@/lib/format";
+import {
+  formatWeight,
+  dayLabel,
+  formatWorkoutDate,
+  replaceCalendarDate,
+  toLocalDateInputValue,
+} from "@/lib/format";
 import type { SavedWorkout, SetValue } from "@/lib/domain/types";
 import type { UpdatePayloadSet } from "@/lib/db/queries";
 
@@ -27,9 +35,16 @@ export function WorkoutEditForm({ workout }: Props) {
   const { setHandler } = useRegisterFlowGuard();
   const pendingIntent = useRef<(() => void) | null>(null);
   const [discardOpen, setDiscardOpen] = useState(false);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [showInvalid, setShowInvalid] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  const initialDateInput = useMemo(
+    () => toLocalDateInputValue(workout.createdAt),
+    [workout.createdAt],
+  );
+  const [dateInput, setDateInput] = useState(initialDateInput);
 
   // Build initial values keyed by saved set id, plus per-exercise label info.
   const { initialValues, exerciseSections } = useMemo(() => {
@@ -61,7 +76,7 @@ export function WorkoutEditForm({ workout }: Props) {
 
   const [values, setValues] = useState<Record<string, SetValue>>(initialValues);
 
-  const isDirty = useMemo(() => {
+  const setsDirty = useMemo(() => {
     for (const id in initialValues) {
       const a = initialValues[id];
       const b = values[id];
@@ -70,6 +85,9 @@ export function WorkoutEditForm({ workout }: Props) {
     }
     return false;
   }, [initialValues, values]);
+
+  const dateDirty = dateInput !== initialDateInput;
+  const isDirty = setsDirty || dateDirty;
 
   const invalidCount = useMemo(() => {
     let n = 0;
@@ -134,20 +152,30 @@ export function WorkoutEditForm({ workout }: Props) {
     }
 
     startTransition(async () => {
-      const payload: UpdatePayloadSet[] = Object.keys(values).map((id) => {
-        const v = values[id];
-        return {
-          id,
-          reps: v.isSkipped ? null : v.reps === "" ? null : Number(v.reps),
-          weight: v.isSkipped ? null : v.weight === "" ? null : Number(v.weight),
-          is_skipped: v.isSkipped,
-        };
-      });
+      if (dateDirty) {
+        const nextIso = replaceCalendarDate(workout.createdAt, dateInput);
+        const res = await updateWorkoutDateAction(workout.id, nextIso);
+        if (res?.error) {
+          setErrorMsg(res.error);
+          return;
+        }
+      }
+      if (setsDirty) {
+        const payload: UpdatePayloadSet[] = Object.keys(values).map((id) => {
+          const v = values[id];
+          return {
+            id,
+            reps: v.isSkipped ? null : v.reps === "" ? null : Number(v.reps),
+            weight: v.isSkipped ? null : v.weight === "" ? null : Number(v.weight),
+            is_skipped: v.isSkipped,
+          };
+        });
 
-      const res = await updateWorkoutAction(workout.id, payload);
-      if (res?.error) {
-        setErrorMsg(res.error);
-        return;
+        const res = await updateWorkoutAction(workout.id, payload);
+        if (res?.error) {
+          setErrorMsg(res.error);
+          return;
+        }
       }
       router.replace(`/workouts/${workout.id}`);
       router.refresh();
@@ -159,7 +187,21 @@ export function WorkoutEditForm({ workout }: Props) {
       <div className="space-y-6 pb-28">
         <header>
           <h1 className="text-3xl font-semibold tabular">
-            {formatWorkoutDate(workout.createdAt)}
+            <button
+              type="button"
+              onClick={() => setDatePickerOpen(true)}
+              disabled={pending}
+              aria-label="Edit workout date"
+              className="inline-flex items-center gap-2 text-left disabled:opacity-50"
+            >
+              {formatWorkoutDate(replaceCalendarDate(workout.createdAt, dateInput))}
+              <Pencil
+                size={18}
+                strokeWidth={1.75}
+                aria-hidden="true"
+                className="text-(--color-text-secondary)"
+              />
+            </button>
           </h1>
           <p className="text-sm text-(--color-text-secondary) mt-1">
             {SPLIT_NAME} · Day {dayLabel(workout.day)}
@@ -219,6 +261,16 @@ export function WorkoutEditForm({ workout }: Props) {
         </div>
       </div>
 
+      <DatePickerSheet
+        open={datePickerOpen}
+        value={dateInput}
+        onSelect={(next) => {
+          setDateInput(next);
+          setDatePickerOpen(false);
+        }}
+        onClose={() => setDatePickerOpen(false)}
+      />
+
       <DiscardDialog
         open={discardOpen}
         onConfirm={() => {
@@ -227,6 +279,7 @@ export function WorkoutEditForm({ workout }: Props) {
           pendingIntent.current = null;
           // Reset to initial so the guard doesn't re-fire mid-navigation.
           setValues(initialValues);
+          setDateInput(initialDateInput);
           if (intent) intent();
         }}
         onCancel={() => {

@@ -1,7 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { deleteWorkout, saveWorkout, updateWorkoutSets } from "@/lib/db/queries";
+import {
+  deleteWorkout,
+  saveWorkout,
+  updateWorkoutCreatedAt,
+  updateWorkoutSets,
+} from "@/lib/db/queries";
 import type {
   SavePayloadExercise,
   UpdatePayloadSet,
@@ -44,5 +49,20 @@ export async function updateWorkoutAction(
     return { ok: true };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Failed to update workout" };
+  }
+}
+
+export async function updateWorkoutDateAction(
+  workoutId: string,
+  createdAtIso: string,
+): Promise<{ ok?: true; error?: string }> {
+  try {
+    await updateWorkoutCreatedAt(workoutId, createdAtIso);
+    revalidatePath(`/workouts/${workoutId}`);
+    revalidatePath("/workouts");
+    revalidatePath("/analytics");
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Failed to update workout date" };
   }
 }

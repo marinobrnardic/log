@@ -197,6 +197,19 @@ export async function updateWorkoutSets(
   if (error) throw error;
 }
 
+export async function updateWorkoutCreatedAt(
+  workoutId: string,
+  createdAtIso: string,
+): Promise<void> {
+  const supabase = await createClient();
+  const nowIso = new Date().toISOString();
+  const { error } = await supabase
+    .from("workouts")
+    .update({ created_at: createdAtIso, updated_at: nowIso })
+    .eq("id", workoutId);
+  if (error) throw error;
+}
+
 export async function deleteWorkout(id: string): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase.from("workouts").delete().eq("id", id);

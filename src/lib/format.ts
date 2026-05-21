@@ -39,6 +39,24 @@ export function formatChartDate(iso: string): string {
   return chartFmt.format(new Date(iso));
 }
 
+/** YYYY-MM-DD in local time, suitable for `<input type="date" value=…>`. */
+export function toLocalDateInputValue(iso: string): string {
+  const d = new Date(iso);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+/** Replace the calendar day on `iso` with the day from `dateInput`
+ *  (YYYY-MM-DD, local). Time-of-day on the original is preserved. */
+export function replaceCalendarDate(iso: string, dateInput: string): string {
+  const [y, m, d] = dateInput.split("-").map(Number);
+  const next = new Date(iso);
+  next.setFullYear(y, m - 1, d);
+  return next.toISOString();
+}
+
 export function dayLabel(day: number): string {
   if (day === 1 || day === 2) return DAY_LABEL[day];
   return String(day);
