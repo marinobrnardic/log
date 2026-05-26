@@ -30,9 +30,11 @@ export function RecapView({ workout, onJumpToSet }: Props) {
                 const myIndex = planIndex++;
                 const value = s.isSkipped
                   ? "Skipped"
-                  : s.weight != null && s.reps != null
+                  : s.reps != null && s.weight != null
                     ? `${formatWeight(s.weight)} kg × ${s.reps}`
-                    : "—";
+                    : s.reps != null && s.weight == null
+                      ? `BW × ${s.reps}`
+                      : "—";
 
                 const inner = (
                   <div

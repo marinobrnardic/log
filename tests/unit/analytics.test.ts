@@ -75,6 +75,7 @@ const mkSavedWorkout = (
       exerciseId: "ex",
       exerciseName,
       orderIndex: 1,
+      allowBodyweight: false,
       sets,
     },
   ],

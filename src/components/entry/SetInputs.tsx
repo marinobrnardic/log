@@ -10,6 +10,7 @@ interface Props {
   value: SetValue;
   targetRepsMin: number;
   targetRepsMax: number;
+  allowBodyweight?: boolean;
   onChange: (field: "weight" | "reps", value: string) => void;
   onToggleSkip: () => void;
   showHelper?: boolean;
@@ -21,6 +22,7 @@ export function SetInputs({
   value,
   targetRepsMin,
   targetRepsMax,
+  allowBodyweight,
   onChange,
   onToggleSkip,
   showHelper,
@@ -59,11 +61,13 @@ export function SetInputs({
         <>
           <div className="grid grid-cols-2 gap-3">
             <label className="space-y-1 block">
-              <span className="block text-sm text-(--color-text-secondary)">Weight (kg)</span>
+              <span className="block text-sm text-(--color-text-secondary)">
+                {allowBodyweight ? "Weight (kg, optional)" : "Weight (kg)"}
+              </span>
               <WeightInput
                 value={value.weight}
                 onChange={(v) => onChange("weight", v)}
-                placeholder="0"
+                placeholder={allowBodyweight ? "Bodyweight" : "0"}
                 ariaLabel="Weight in kilograms"
                 inputRef={weightRef}
               />
@@ -79,9 +83,14 @@ export function SetInputs({
               />
             </label>
           </div>
+          {allowBodyweight && value.weight === "" && (
+            <p className="text-sm text-(--color-text-muted) text-center">
+              Leave weight blank for bodyweight.
+            </p>
+          )}
           {showHelper && (
             <p className="text-sm text-(--color-text-muted) text-center">
-              Enter weight and reps, or tap Skip.
+              {allowBodyweight ? "Enter reps, or tap Skip." : "Enter weight and reps, or tap Skip."}
             </p>
           )}
         </>

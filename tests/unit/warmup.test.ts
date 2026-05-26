@@ -22,6 +22,7 @@ const mkWorkout = (
       exerciseId: `ex-${exerciseName}`,
       exerciseName,
       orderIndex: 1,
+      allowBodyweight: false,
       sets: sets.map((s, i) => ({
         id: `s-${i}`,
         setType: s.type,

@@ -28,6 +28,7 @@ interface Props {
 interface RowMeta {
   setId: string;
   label: string;
+  allowBodyweight: boolean;
 }
 
 export function WorkoutEditForm({ workout }: Props) {
@@ -61,7 +62,7 @@ export function WorkoutEditForm({ workout }: Props) {
         const idx = typeIndex.get(s.setType) ?? 0;
         typeIndex.set(s.setType, idx + 1);
         const label = setLabel(s.setType, idx, typeCounts.get(s.setType) ?? 1);
-        rows.push({ setId: s.id, label });
+        rows.push({ setId: s.id, label, allowBodyweight: ex.allowBodyweight });
         initialValues[s.id] = {
           weight: s.isSkipped || s.weight == null ? "" : formatWeight(s.weight),
           reps: s.isSkipped || s.reps == null ? "" : String(s.reps),
@@ -89,13 +90,21 @@ export function WorkoutEditForm({ workout }: Props) {
   const dateDirty = dateInput !== initialDateInput;
   const isDirty = setsDirty || dateDirty;
 
+  const allowBodyweightBySetId = useMemo(() => {
+    const map = new Map<string, boolean>();
+    for (const section of exerciseSections) {
+      for (const row of section.rows) map.set(row.setId, row.allowBodyweight);
+    }
+    return map;
+  }, [exerciseSections]);
+
   const invalidCount = useMemo(() => {
     let n = 0;
     for (const id in values) {
-      if (!isRowValid(values[id])) n++;
+      if (!isRowValid(values[id], allowBodyweightBySetId.get(id) === true)) n++;
     }
     return n;
-  }, [values]);
+  }, [values, allowBodyweightBySetId]);
 
   // Wire up the discard guard so top nav / bottom tabs intercept while dirty.
   useEffect(() => {
@@ -217,7 +226,8 @@ export function WorkoutEditForm({ workout }: Props) {
                   key={row.setId}
                   label={row.label}
                   value={values[row.setId]}
-                  invalid={showInvalid && !isRowValid(values[row.setId])}
+                  allowBodyweight={row.allowBodyweight}
+                  invalid={showInvalid && !isRowValid(values[row.setId], row.allowBodyweight)}
                   onChange={(field, v) => updateField(row.setId, field, v)}
                   onToggleSkip={() => toggleSkip(row.setId)}
                 />
@@ -291,10 +301,12 @@ export function WorkoutEditForm({ workout }: Props) {
   );
 }
 
-function isRowValid(v: SetValue | undefined): boolean {
+function isRowValid(v: SetValue | undefined, allowBodyweight: boolean): boolean {
   if (!v) return false;
   if (v.isSkipped) return true;
-  const w = Number(v.weight);
   const r = Number(v.reps);
-  return Number.isFinite(w) && w > 0 && Number.isFinite(r) && Number.isInteger(r) && r >= 1;
+  if (!Number.isFinite(r) || !Number.isInteger(r) || r < 1) return false;
+  if (v.weight === "") return allowBodyweight;
+  const w = Number(v.weight);
+  return Number.isFinite(w) && w > 0;
 }

@@ -200,8 +200,8 @@ Not allowed:
 ### Validation
 
 * `weight` and `reps` are **required** on submission unless `is_skipped = true`
-* `weight`: float, must be > 0, in kg
-* `reps`: integer, must be ≥ 1
+* `weight`: float in kg. Must be `> 0` **unless** the exercise has `allow_bodyweight = true` (Pull-ups, Dips), in which case an empty input is accepted and persisted as `null` to mean "bodyweight only". `0` is never a valid value — the two accepted states are `null` (bodyweight) and `> 0` (loaded).
+* `reps`: integer, must be ≥ 1 (required even for bodyweight sets)
 
 ---
 
@@ -230,8 +230,8 @@ Not allowed:
 |-------|------------------------|---------------------------------------------------------------------------|
 | 1     | Deadlift               | Normal: 3 × 1 rep (note: "@ 90% 1RM") · Back-off: 2 × 5–10 reps           |
 | 2     | Overhead Press         | Top Set: 1 × 4–6 reps · Back-off: 2 × 6–10 reps                           |
-| 3     | Pull-ups               | Normal: 3 × 8–10 reps                                                     |
-| 4     | Dips                   | Normal: 3 × 8–10 reps                                                     |
+| 3     | Pull-ups               | Normal: 3 × 8–10 reps · `allow_bodyweight = true`                         |
+| 4     | Dips                   | Normal: 3 × 8–10 reps · `allow_bodyweight = true`                         |
 | 5     | Bulgarian Split Squats | Normal: 2 × 8–10 reps                                                     |
 
 ---

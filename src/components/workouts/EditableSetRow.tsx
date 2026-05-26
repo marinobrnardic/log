@@ -7,12 +7,20 @@ import type { SetValue } from "@/lib/domain/types";
 interface Props {
   label: string;
   value: SetValue;
+  allowBodyweight?: boolean;
   invalid?: boolean;
   onChange: (field: "weight" | "reps", value: string) => void;
   onToggleSkip: () => void;
 }
 
-export function EditableSetRow({ label, value, invalid, onChange, onToggleSkip }: Props) {
+export function EditableSetRow({
+  label,
+  value,
+  allowBodyweight,
+  invalid,
+  onChange,
+  onToggleSkip,
+}: Props) {
   return (
     <div
       className={`flex items-center gap-2 py-2 ${value.isSkipped ? "opacity-50" : ""}`}
@@ -28,10 +36,14 @@ export function EditableSetRow({ label, value, invalid, onChange, onToggleSkip }
             <WeightInput
               value={value.weight}
               onChange={(v) => onChange("weight", v)}
-              placeholder="kg"
+              placeholder={allowBodyweight ? "BW" : "kg"}
               ariaLabel={`${label} weight in kilograms`}
               size="md"
-              invalid={invalid && (value.weight === "" || Number(value.weight) <= 0)}
+              invalid={
+                invalid &&
+                ((value.weight === "" && !allowBodyweight) ||
+                  (value.weight !== "" && Number(value.weight) <= 0))
+              }
               disabled={value.isSkipped}
             />
           </div>

@@ -178,6 +178,7 @@ function FlowContent({
             value={value}
             targetRepsMin={currentSet.targetRepsMin}
             targetRepsMax={currentSet.targetRepsMax}
+            allowBodyweight={currentSet.allowBodyweight}
             onChange={(field, v) => dispatch({ type: "setField", field, value: v })}
             onToggleSkip={() => dispatch({ type: "toggleSkip" })}
             showHelper={hasTouched && !advanceOk}
@@ -334,7 +335,15 @@ function RecapList({
 }) {
   const grouped = useMemo(() => {
     if (!state.plan) return [];
-    type Row = { name: string; rows: { key: string; label: string; planIndex: number }[] };
+    type Row = {
+      name: string;
+      rows: {
+        key: string;
+        label: string;
+        planIndex: number;
+        allowBodyweight: boolean;
+      }[];
+    };
     const out: Row[] = [];
     for (const ws of state.plan.workingSets) {
       let g = out.find((x) => x.name === ws.exerciseName);
@@ -342,7 +351,12 @@ function RecapList({
         g = { name: ws.exerciseName, rows: [] };
         out.push(g);
       }
-      g.rows.push({ key: ws.key, label: ws.label, planIndex: ws.planIndex });
+      g.rows.push({
+        key: ws.key,
+        label: ws.label,
+        planIndex: ws.planIndex,
+        allowBodyweight: ws.allowBodyweight,
+      });
     }
     return out;
   }, [state.plan]);
@@ -368,7 +382,9 @@ function RecapList({
                   ? "Skipped"
                   : v.weight && v.reps
                     ? `${formatWeight(Number(v.weight))} kg × ${v.reps}`
-                    : "—";
+                    : v.reps && row.allowBodyweight
+                      ? `BW × ${v.reps}`
+                      : "—";
                 return (
                   <li key={row.key}>
                     <button
@@ -407,13 +423,19 @@ function firstIncompleteIndex(state: EntryState): number {
   if (!state.plan) return 0;
   const sets = state.plan.workingSets;
   for (let i = 0; i < sets.length; i++) {
-    const v = state.values[sets[i].key];
+    const ws = sets[i];
+    const v = state.values[ws.key];
     if (!v || v.isSkipped) return i;
-    const w = Number(v.weight);
     const r = Number(v.reps);
-    const valid =
-      Number.isFinite(w) && w > 0 && Number.isFinite(r) && Number.isInteger(r) && r >= 1;
-    if (!valid) return i;
+    const repsOk = Number.isFinite(r) && Number.isInteger(r) && r >= 1;
+    const weightOk =
+      v.weight === ""
+        ? ws.allowBodyweight
+        : (() => {
+            const w = Number(v.weight);
+            return Number.isFinite(w) && w > 0;
+          })();
+    if (!repsOk || !weightOk) return i;
   }
   return sets.length - 1;
 }

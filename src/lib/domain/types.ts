@@ -31,6 +31,8 @@ export interface WorkingSet {
   isFirstOfExercise: boolean;
   targetRepsMin: number;
   targetRepsMax: number;
+  /** If true, weight may be left empty (saved as null) to mean "bodyweight". */
+  allowBodyweight: boolean;
 }
 
 export interface WorkoutPlan {
@@ -69,6 +71,9 @@ export interface SavedWorkoutExercise {
   exerciseId: string;
   exerciseName: string;
   orderIndex: number;
+  /** Mirrors exercises.allow_bodyweight at save time. Used by the edit view
+   *  to permit empty weight on Pull-ups / Dips. */
+  allowBodyweight: boolean;
   sets: SavedSet[];
 }
 

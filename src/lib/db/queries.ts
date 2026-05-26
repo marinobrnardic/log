@@ -66,7 +66,7 @@ interface JoinedRow {
     id: string;
     exercise_id: string;
     order_index: number;
-    exercises: { name: string } | null;
+    exercises: { name: string; allow_bodyweight: boolean | null } | null;
     sets: {
       id: string;
       order_index: number;
@@ -91,6 +91,7 @@ function joinedToSaved(row: JoinedRow): SavedWorkout {
         id: we.id,
         exerciseId: we.exercise_id,
         exerciseName: we.exercises?.name ?? "",
+        allowBodyweight: we.exercises?.allow_bodyweight === true,
         orderIndex: we.order_index,
         sets: [...we.sets]
           .sort((a, b) => a.order_index - b.order_index)
@@ -115,7 +116,7 @@ export async function getWorkoutById(id: string): Promise<SavedWorkout | null> {
       `id, day, split_id, created_at,
        workout_exercises (
          id, exercise_id, order_index,
-         exercises ( name ),
+         exercises ( name, allow_bodyweight ),
          sets (
            id, order_index, reps, weight, is_skipped, set_template_id,
            exercise_set_templates ( type )
@@ -139,7 +140,7 @@ export async function getFullWorkoutHistory(): Promise<SavedWorkout[]> {
       `id, day, split_id, created_at,
        workout_exercises (
          id, exercise_id, order_index,
-         exercises ( name ),
+         exercises ( name, allow_bodyweight ),
          sets (
            id, order_index, reps, weight, is_skipped, set_template_id,
            exercise_set_templates ( type )

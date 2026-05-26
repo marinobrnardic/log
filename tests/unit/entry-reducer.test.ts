@@ -7,7 +7,12 @@ import {
 } from "@/lib/entry/reducer";
 import type { ExerciseRow, SetTemplateRow } from "@/lib/domain/types";
 
-const ex = (id: string, name: string, order: number): ExerciseRow => ({
+const ex = (
+  id: string,
+  name: string,
+  order: number,
+  allowBodyweight = false,
+): ExerciseRow => ({
   id,
   name,
   split_id: "2day",
@@ -15,6 +20,7 @@ const ex = (id: string, name: string, order: number): ExerciseRow => ({
   order_index: order,
   notes: null,
   is_active: true,
+  allow_bodyweight: allowBodyweight,
 });
 
 const tpl = (
@@ -150,5 +156,66 @@ describe("entryReducer — skipExercise", () => {
     s = entryReducer(s, { type: "skipExercise" });
     const set1 = s.plan!.workingSets[0];
     expect(s.values[set1.key]).toEqual({ weight: "", reps: "", isSkipped: true });
+  });
+});
+
+describe("entryReducer — bodyweight exercises", () => {
+  function buildBodyweightState(): EntryState {
+    // First exercise: bodyweight-capable (Pull-ups). Second: weighted (Squat).
+    const exercises = [
+      ex("pullups", "Pull-ups", 1, /* allowBodyweight */ true),
+      ex("squat", "Squat", 2, /* allowBodyweight */ false),
+    ];
+    const templates = [
+      tpl("t-pullups", "pullups", "normal", 1, 1, 8, 10),
+      tpl("t-squat", "squat", "top_set", 1, 1),
+    ];
+    return entryReducer(createInitialState(), {
+      type: "selectDay",
+      day: 1,
+      exercises,
+      templates,
+      history: [],
+      weightIncrement: 2.5,
+    });
+  }
+
+  it("canAdvance is true on a bodyweight set with empty weight and valid reps", () => {
+    let s = entryReducer(buildBodyweightState(), { type: "start" });
+    expect(s.plan!.workingSets[s.index].exerciseId).toBe("pullups");
+    s = entryReducer(s, { type: "setField", field: "reps", value: "8" });
+    expect(canAdvance(s)).toBe(true);
+  });
+
+  it("canAdvance still requires reps on a bodyweight set", () => {
+    let s = entryReducer(buildBodyweightState(), { type: "start" });
+    expect(canAdvance(s)).toBe(false);
+    s = entryReducer(s, { type: "setField", field: "reps", value: "0" });
+    expect(canAdvance(s)).toBe(false);
+  });
+
+  it("canAdvance rejects weight=0 even on a bodyweight set (null vs >0 only)", () => {
+    let s = entryReducer(buildBodyweightState(), { type: "start" });
+    s = entryReducer(s, { type: "setField", field: "weight", value: "0" });
+    s = entryReducer(s, { type: "setField", field: "reps", value: "8" });
+    expect(canAdvance(s)).toBe(false);
+  });
+
+  it("canAdvance accepts weight>0 with reps on a bodyweight set (added weight)", () => {
+    let s = entryReducer(buildBodyweightState(), { type: "start" });
+    s = entryReducer(s, { type: "setField", field: "weight", value: "10" });
+    s = entryReducer(s, { type: "setField", field: "reps", value: "8" });
+    expect(canAdvance(s)).toBe(true);
+  });
+
+  it("canAdvance rejects empty weight on a non-bodyweight set (Squat still requires weight)", () => {
+    let s = entryReducer(buildBodyweightState(), { type: "start" });
+    // jump past Pull-ups to Squat
+    s = entryReducer(s, { type: "jumpTo", index: 1 });
+    expect(s.plan!.workingSets[s.index].exerciseId).toBe("squat");
+    s = entryReducer(s, { type: "setField", field: "reps", value: "5" });
+    expect(canAdvance(s)).toBe(false);
+    s = entryReducer(s, { type: "setField", field: "weight", value: "100" });
+    expect(canAdvance(s)).toBe(true);
   });
 });

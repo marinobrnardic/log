@@ -10,6 +10,7 @@ const ex = (id: string, name: string, order: number): ExerciseRow => ({
   order_index: order,
   notes: null,
   is_active: true,
+  allow_bodyweight: false,
 });
 
 const tpl = (

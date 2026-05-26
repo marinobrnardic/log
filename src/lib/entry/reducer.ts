@@ -219,11 +219,17 @@ function seedSuggestedValues(
 
 /** Validation gate: can the user advance from the current set? */
 export function canAdvance(state: EntryState): boolean {
-  const key = currentKey(state);
-  if (!key) return false;
-  const v = ensureValue(state, key);
+  const plan = state.plan;
+  if (!plan) return false;
+  const ws = plan.workingSets[state.index];
+  if (!ws) return false;
+  const v = ensureValue(state, ws.key);
   if (v.isSkipped) return true;
-  const w = Number(v.weight);
   const r = Number(v.reps);
-  return Number.isFinite(w) && w > 0 && Number.isFinite(r) && Number.isInteger(r) && r >= 1;
+  if (!Number.isFinite(r) || !Number.isInteger(r) || r < 1) return false;
+  // Empty weight is valid only when the exercise allows bodyweight.
+  // Zero ("0") is never valid — null vs. > 0 are the only accepted states.
+  if (v.weight === "") return ws.allowBodyweight;
+  const w = Number(v.weight);
+  return Number.isFinite(w) && w > 0;
 }

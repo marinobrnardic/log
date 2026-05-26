@@ -51,6 +51,7 @@ export function buildWorkoutPlan(
           isFirstOfExercise: indexInExercise === 0,
           targetRepsMin: tpl.target_reps_min,
           targetRepsMax: tpl.target_reps_max,
+          allowBodyweight: ex.allow_bodyweight === true,
         });
         indexInExercise++;
         planIndex++;
