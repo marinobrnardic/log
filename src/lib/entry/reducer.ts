@@ -42,10 +42,17 @@ export type EntryAction =
   | { type: "back" }
   | { type: "jumpTo"; index: number; fromRecap?: boolean }
   | { type: "goToRecap" }
+  | { type: "skipExercise" }
   | { type: "finishWorkout" }
   | { type: "markClean" };
 
 export const emptyValue = (): SetValue => ({ weight: "", reps: "", isSkipped: false });
+
+/** True if the user has typed weight or reps for this set (and hasn't skipped it). */
+export function hasEnteredValue(v: SetValue | undefined): boolean {
+  if (!v || v.isSkipped) return false;
+  return v.weight !== "" || v.reps !== "";
+}
 
 export function createInitialState(overrides: Partial<EntryState> = {}): EntryState {
   return {
@@ -133,6 +140,33 @@ export function entryReducer(state: EntryState, action: EntryAction): EntryState
     case "goToRecap": {
       if (!state.plan) return state;
       return { ...state, phase: "recap", returnToRecap: false };
+    }
+    case "skipExercise": {
+      if (!state.plan) return state;
+      const current = state.plan.workingSets[state.index];
+      if (!current) return state;
+      const newValues = { ...state.values };
+      for (const ws of state.plan.workingSets) {
+        if (ws.exerciseId === current.exerciseId) {
+          newValues[ws.key] = { ...emptyValue(), isSkipped: true };
+        }
+      }
+      if (state.returnToRecap) {
+        return {
+          ...state,
+          values: newValues,
+          phase: "recap",
+          returnToRecap: false,
+          dirty: true,
+        };
+      }
+      const nextIndex = state.plan.workingSets.findIndex(
+        (ws) => ws.planIndex > state.index && ws.exerciseId !== current.exerciseId,
+      );
+      if (nextIndex === -1) {
+        return { ...state, values: newValues, phase: "recap", dirty: true };
+      }
+      return { ...state, values: newValues, index: nextIndex, dirty: true };
     }
     case "finishWorkout": {
       if (!state.plan) return state;

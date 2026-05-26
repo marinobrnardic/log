@@ -20,6 +20,7 @@ import {
   createInitialState,
   emptyValue,
   entryReducer,
+  hasEnteredValue,
   type EntryState,
 } from "@/lib/entry/reducer";
 import {
@@ -71,6 +72,7 @@ function FlowContent({
 }) {
   const { setHandler } = useRegisterFlowGuard();
   const [discardOpen, setDiscardOpen] = useState(false);
+  const [skipExerciseOpen, setSkipExerciseOpen] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const pendingIntent = useRef<(() => void) | null>(null);
@@ -150,6 +152,17 @@ function FlowContent({
       if (!value.weight) weightRef.current?.focus();
       else if (!value.reps) repsRef.current?.focus();
     };
+    const workingSets = state.plan.workingSets;
+    const handleSkipExercise = () => {
+      const hasValues = workingSets.some(
+        (ws) => ws.exerciseId === currentSet.exerciseId && hasEnteredValue(state.values[ws.key]),
+      );
+      if (hasValues) {
+        setSkipExerciseOpen(true);
+        return;
+      }
+      dispatch({ type: "skipExercise" });
+    };
 
     return (
       <>
@@ -172,6 +185,13 @@ function FlowContent({
             repsRef={repsRef}
           />
           <div className="sticky bottom-[calc(4rem+env(safe-area-inset-bottom))] -mx-4 px-4 pt-3 pb-3 bg-(--color-bg-base) border-t border-(--color-border) flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={handleSkipExercise}
+              className="w-full min-h-[44px] rounded-lg border border-(--color-border) text-(--color-text-secondary)"
+            >
+              Skip Exercise
+            </button>
             {!state.returnToRecap && !isLast && (
               <button
                 type="button"
@@ -216,6 +236,17 @@ function FlowContent({
             setDiscardOpen(false);
             pendingIntent.current = null;
           }}
+        />
+        <DiscardDialog
+          open={skipExerciseOpen}
+          title="Skip this exercise?"
+          message="Entered sets for this exercise will be marked skipped."
+          confirmLabel="Skip exercise"
+          onConfirm={() => {
+            setSkipExerciseOpen(false);
+            dispatch({ type: "skipExercise" });
+          }}
+          onCancel={() => setSkipExerciseOpen(false)}
         />
       </>
     );
@@ -318,46 +349,56 @@ function RecapList({
 
   return (
     <div className="space-y-6">
-      {grouped.map((g) => (
-        <section key={g.name} className="space-y-2">
-          <h3 className="text-2xl font-semibold">{g.name}</h3>
-          <ul className="space-y-1">
-            {g.rows.map((row) => {
-              const v = state.values[row.key] ?? emptyValue();
-              const display = v.isSkipped
-                ? "Skipped"
-                : v.weight && v.reps
-                  ? `${formatWeight(Number(v.weight))} kg × ${v.reps}`
-                  : "—";
-              return (
-                <li key={row.key}>
-                  <button
-                    type="button"
-                    onClick={() => onJumpToSet(row.planIndex)}
-                    aria-label={`Edit ${row.label}: ${display}`}
-                    className={`w-full text-left rounded px-2 -mx-2 hover:bg-(--color-bg-surface-2) ${
-                      v.isSkipped ? "opacity-50" : ""
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-3 min-h-[44px] py-3 border-b border-(--color-border)">
-                      <span className="text-(--color-text-secondary)">{row.label}</span>
-                      <span className="flex items-center gap-2">
-                        <span className="tabular">{display}</span>
-                        <ChevronRight
-                          size={16}
-                          strokeWidth={1.75}
-                          className="text-(--color-text-muted)"
-                          aria-hidden="true"
-                        />
-                      </span>
-                    </div>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      ))}
+      {grouped.map((g) => {
+        const allSkipped = g.rows.every((row) => state.values[row.key]?.isSkipped === true);
+        return (
+          <section key={g.name} className={`space-y-2 ${allSkipped ? "opacity-50" : ""}`}>
+            <div className="flex items-center gap-2">
+              <h3 className="text-2xl font-semibold">{g.name}</h3>
+              {allSkipped && (
+                <span className="text-xs uppercase tracking-wide px-2 py-0.5 rounded border border-(--color-border) text-(--color-text-secondary)">
+                  Skipped
+                </span>
+              )}
+            </div>
+            <ul className="space-y-1">
+              {g.rows.map((row) => {
+                const v = state.values[row.key] ?? emptyValue();
+                const display = v.isSkipped
+                  ? "Skipped"
+                  : v.weight && v.reps
+                    ? `${formatWeight(Number(v.weight))} kg × ${v.reps}`
+                    : "—";
+                return (
+                  <li key={row.key}>
+                    <button
+                      type="button"
+                      onClick={() => onJumpToSet(row.planIndex)}
+                      aria-label={`Edit ${row.label}: ${display}`}
+                      className={`w-full text-left rounded px-2 -mx-2 hover:bg-(--color-bg-surface-2) ${
+                        v.isSkipped ? "opacity-50" : ""
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-3 min-h-[44px] py-3 border-b border-(--color-border)">
+                        <span className="text-(--color-text-secondary)">{row.label}</span>
+                        <span className="flex items-center gap-2">
+                          <span className="tabular">{display}</span>
+                          <ChevronRight
+                            size={16}
+                            strokeWidth={1.75}
+                            className="text-(--color-text-muted)"
+                            aria-hidden="true"
+                          />
+                        </span>
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        );
+      })}
     </div>
   );
 }
