@@ -3,8 +3,9 @@ import type {
   ExerciseRow,
   SavedWorkout,
   SetTemplateRow,
+  SetType,
 } from "@/lib/domain/types";
-import type { Json, SetType } from "@/lib/supabase/database.types";
+import type { Json } from "@/lib/supabase/database.types";
 import {
   DEFAULT_WEIGHT_INCREMENT,
   type WeightIncrement,

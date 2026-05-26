@@ -1,4 +1,4 @@
-import type { Database, SetType } from "@/lib/supabase/database.types";
+import type { Database } from "@/lib/supabase/database.types";
 
 export type ExerciseRow = Database["public"]["Tables"]["exercises"]["Row"];
 export type SetTemplateRow = Database["public"]["Tables"]["exercise_set_templates"]["Row"];
@@ -6,7 +6,9 @@ export type WorkoutRow = Database["public"]["Tables"]["workouts"]["Row"];
 export type WorkoutExerciseRow = Database["public"]["Tables"]["workout_exercises"]["Row"];
 export type SetRow = Database["public"]["Tables"]["sets"]["Row"];
 
-export type { SetType };
+/** Set-template type discriminator. Mirrors the values stored in
+ *  `exercise_set_templates.type` (see migration 0003_seed.sql). */
+export type SetType = "top_set" | "backoff" | "normal";
 
 export type DayLabel = "A" | "B";
 export const DAY_LABEL: Record<1 | 2, DayLabel> = { 1: "A", 2: "B" };
