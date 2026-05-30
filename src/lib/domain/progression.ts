@@ -24,15 +24,19 @@ interface SuggestionArgs {
 /** Suggest a pre-filled weight for a single working set based on the user's
  *  most recent matching performance.
  *
- *  Match priority (stops at the first non-null result):
+ *  Top-set match priority (stops at the first non-null result):
  *    1. Most recent workout containing this exercise → set with matching
  *       `setType` AND `indexInExercise`, non-skipped, weight > 0.
  *    2. Same workout → ANY non-skipped, weight > 0 set of the matching
  *       `setType` (fallback when the exact index slot was skipped last time).
  *    3. Walk to the next-older workout and repeat.
  *
- *  If the matched set's `reps >= targetRepsMax`, bump the weight by `increment`
- *  (the user "earned" the jump). Otherwise return the same weight.
+ *  For grouped sets (`backoff`, `normal`) `indexInExercise` is ignored — all
+ *  sets of that type within an exercise share one suggestion: the heaviest
+ *  non-skipped weight from the most recent workout. The bump only applies when
+ *  EVERY non-skipped set in that group hit `targetRepsMax`.
+ *
+ *  If the chosen weight earned a bump, add `increment`. Otherwise return as-is.
  *
  *  Returns `null` when no prior matching data exists. */
 export function getSuggestedWeight({
@@ -43,9 +47,29 @@ export function getSuggestedWeight({
   history,
   increment,
 }: SuggestionArgs): number | null {
+  const useGroup = setType === "backoff" || setType === "normal";
+
   for (const workout of history) {
     for (const ex of workout.exercises) {
       if (ex.exerciseName !== exerciseName) continue;
+
+      if (useGroup) {
+        const group = ex.sets.filter(
+          (s) =>
+            s.setType === setType &&
+            !s.isSkipped &&
+            s.weight != null &&
+            s.weight > 0,
+        );
+        if (group.length === 0) continue;
+
+        const base = Math.max(...group.map((s) => s.weight as number));
+        const allHitTarget = group.every(
+          (s) => s.reps != null && s.reps >= targetRepsMax,
+        );
+        const suggested = allHitTarget ? base + increment : base;
+        return roundToTenth(suggested);
+      }
 
       const matched =
         pickSet(ex.sets, setType, indexInExercise) ??

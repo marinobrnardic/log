@@ -159,12 +159,94 @@ describe("getSuggestedWeight", () => {
     ).toBeNull();
   });
 
-  it("matches by indexInExercise when multiple backoff sets exist", () => {
+  it("pre-fills every back-off set to the heaviest back-off from the previous workout", () => {
     const history = [
       mkWorkout("2025-03-01", "Squat", [
         { type: "top_set", weight: 120, reps: 5 },
         { type: "backoff", weight: 100, reps: 8 },
         { type: "backoff", weight: 95, reps: 7 },
+      ]),
+    ];
+    // Both back-offs share one suggestion = heaviest non-skipped back-off
+    // from last time. Neither hit target reps (10) so no bump.
+    expect(
+      getSuggestedWeight({
+        exerciseName: "Squat",
+        setType: "backoff",
+        indexInExercise: 1,
+        targetRepsMax: 10,
+        history,
+        increment: 2.5,
+      }),
+    ).toBe(100);
+    expect(
+      getSuggestedWeight({
+        exerciseName: "Squat",
+        setType: "backoff",
+        indexInExercise: 2,
+        targetRepsMax: 10,
+        history,
+        increment: 2.5,
+      }),
+    ).toBe(100);
+  });
+
+  it("uses the heaviest non-skipped back-off and ignores skipped ones", () => {
+    const history = [
+      mkWorkout("2025-03-01", "Squat", [
+        { type: "top_set", weight: 120, reps: 5 },
+        { type: "backoff", weight: 100, reps: 8 },
+        { type: "backoff", weight: null, reps: null, skipped: true },
+      ]),
+    ];
+    expect(
+      getSuggestedWeight({
+        exerciseName: "Squat",
+        setType: "backoff",
+        indexInExercise: 2,
+        targetRepsMax: 10,
+        history,
+        increment: 2.5,
+      }),
+    ).toBe(100);
+  });
+
+  it("bumps all back-offs when every non-skipped back-off hit target reps", () => {
+    const history = [
+      mkWorkout("2025-03-01", "Squat", [
+        { type: "top_set", weight: 120, reps: 5 },
+        { type: "backoff", weight: 100, reps: 10 },
+        { type: "backoff", weight: 100, reps: 10 },
+      ]),
+    ];
+    expect(
+      getSuggestedWeight({
+        exerciseName: "Squat",
+        setType: "backoff",
+        indexInExercise: 1,
+        targetRepsMax: 10,
+        history,
+        increment: 2.5,
+      }),
+    ).toBe(102.5);
+    expect(
+      getSuggestedWeight({
+        exerciseName: "Squat",
+        setType: "backoff",
+        indexInExercise: 2,
+        targetRepsMax: 10,
+        history,
+        increment: 2.5,
+      }),
+    ).toBe(102.5);
+  });
+
+  it("does not bump when any non-skipped back-off fell short of target reps", () => {
+    const history = [
+      mkWorkout("2025-03-01", "Squat", [
+        { type: "top_set", weight: 120, reps: 5 },
+        { type: "backoff", weight: 100, reps: 10 },
+        { type: "backoff", weight: 100, reps: 8 },
       ]),
     ];
     expect(
@@ -186,29 +268,28 @@ describe("getSuggestedWeight", () => {
         history,
         increment: 2.5,
       }),
-    ).toBe(95);
+    ).toBe(100);
   });
 
-  it("falls back to any same-setType non-skipped set when the exact index was skipped", () => {
+  it("excludes skipped back-offs from the rep-bump check", () => {
     const history = [
       mkWorkout("2025-03-01", "Squat", [
         { type: "top_set", weight: 120, reps: 5 },
-        { type: "backoff", weight: 100, reps: 8 },
+        { type: "backoff", weight: 100, reps: 10 },
         { type: "backoff", weight: null, reps: null, skipped: true },
       ]),
     ];
-    // Asking for the 2nd backoff (index 2) — exact match is skipped, fall
-    // back to the other backoff (index 1).
+    // The skipped set is ignored; the only counted back-off hit target → bump.
     expect(
       getSuggestedWeight({
         exerciseName: "Squat",
         setType: "backoff",
-        indexInExercise: 2,
+        indexInExercise: 1,
         targetRepsMax: 10,
         history,
         increment: 2.5,
       }),
-    ).toBe(100);
+    ).toBe(102.5);
   });
 
   it("ignores skipped sets at the exact index and falls back within the same workout", () => {
