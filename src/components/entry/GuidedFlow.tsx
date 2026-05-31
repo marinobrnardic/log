@@ -75,6 +75,10 @@ function FlowContent({
   const [skipExerciseOpen, setSkipExerciseOpen] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  /** True for ~180 ms after the user taps Next on the last set of an exercise
+   *  (or the workout). Lets the bar tween 67% → 100% before the index advances
+   *  and the next exercise's wrapper remounts at 0%. */
+  const [isFinishingExercise, setIsFinishingExercise] = useState(false);
   const pendingIntent = useRef<(() => void) | null>(null);
   const weightRef = useRef<HTMLInputElement>(null);
   const repsRef = useRef<HTMLInputElement>(null);
@@ -142,15 +146,36 @@ function FlowContent({
       ? getAnchorWeight(currentSet.exerciseName, dataset.history)
       : null;
     const warmups = currentSet.isFirstOfExercise ? getWarmupSets(anchor) : null;
+    const setsInExercise = state.plan.workingSets.reduce(
+      (n, ws) => (ws.exerciseId === currentSet.exerciseId ? n + 1 : n),
+      0,
+    );
     const advanceOk = canAdvance(state);
     const hasTouched = !value.isSkipped && (value.weight !== "" || value.reps !== "");
     const handleNext = () => {
-      if (advanceOk) {
+      if (!advanceOk) {
+        if (!value.weight) weightRef.current?.focus();
+        else if (!value.reps) repsRef.current?.focus();
+        return;
+      }
+      if (state.returnToRecap) {
+        // Edit-from-recap "Done" button — no fill animation needed; the recap
+        // already shows 100% so the bar would just stay where it is.
         dispatch({ type: "next" });
         return;
       }
-      if (!value.weight) weightRef.current?.focus();
-      else if (!value.reps) repsRef.current?.focus();
+      const nextSet = state.plan!.workingSets[state.index + 1];
+      const willCrossExercise =
+        isLast || (nextSet ? nextSet.exerciseId !== currentSet.exerciseId : false);
+      if (willCrossExercise) {
+        setIsFinishingExercise(true);
+        window.setTimeout(() => {
+          setIsFinishingExercise(false);
+          dispatch({ type: "next" });
+        }, 180);
+        return;
+      }
+      dispatch({ type: "next" });
     };
     const workingSets = state.plan.workingSets;
     const handleSkipExercise = () => {
@@ -170,21 +195,25 @@ function FlowContent({
           <SetProgress
             exerciseName={currentSet.exerciseName}
             setLabel={currentSet.label}
-            current={state.index + 1}
-            total={state.plan.total}
+            position={currentSet.indexInExercise + 1}
+            completed={isFinishingExercise ? setsInExercise : currentSet.indexInExercise}
+            total={setsInExercise}
+            exerciseKey={currentSet.exerciseId}
           />
-          {warmups && <WarmupSection warmups={warmups} />}
-          <SetInputs
-            value={value}
-            targetRepsMin={currentSet.targetRepsMin}
-            targetRepsMax={currentSet.targetRepsMax}
-            allowBodyweight={currentSet.allowBodyweight}
-            onChange={(field, v) => dispatch({ type: "setField", field, value: v })}
-            onToggleSkip={() => dispatch({ type: "toggleSkip" })}
-            showHelper={hasTouched && !advanceOk}
-            weightRef={weightRef}
-            repsRef={repsRef}
-          />
+          <div key={state.index} className="space-y-6 animate-[setEnter_180ms_ease-out]">
+            {warmups && <WarmupSection warmups={warmups} />}
+            <SetInputs
+              value={value}
+              targetRepsMin={currentSet.targetRepsMin}
+              targetRepsMax={currentSet.targetRepsMax}
+              allowBodyweight={currentSet.allowBodyweight}
+              onChange={(field, v) => dispatch({ type: "setField", field, value: v })}
+              onToggleSkip={() => dispatch({ type: "toggleSkip" })}
+              showHelper={hasTouched && !advanceOk}
+              weightRef={weightRef}
+              repsRef={repsRef}
+            />
+          </div>
           <div className="sticky bottom-[calc(4rem+env(safe-area-inset-bottom))] -mx-4 px-4 pt-3 pb-3 bg-(--color-bg-base) border-t border-(--color-border) flex flex-col gap-2">
             <button
               type="button"
@@ -214,9 +243,10 @@ function FlowContent({
               <button
                 type="button"
                 onClick={handleNext}
-                aria-disabled={!advanceOk || undefined}
+                disabled={isFinishingExercise}
+                aria-disabled={!advanceOk || isFinishingExercise || undefined}
                 className={`flex-1 min-h-[44px] rounded-lg bg-(--color-accent) text-(--color-accent-text) font-medium ${
-                  advanceOk ? "hover:bg-(--color-accent-hover)" : "opacity-50"
+                  advanceOk && !isFinishingExercise ? "hover:bg-(--color-accent-hover)" : "opacity-50"
                 }`}
               >
                 {state.returnToRecap ? "Done" : isLast ? "Review" : "Next Set"}
@@ -277,7 +307,8 @@ function FlowContent({
         <SetProgress
           exerciseName="Review"
           setLabel="all sets"
-          current={state.plan.total}
+          position={state.plan.total}
+          completed={state.plan.total}
           total={state.plan.total}
         />
         <div className="space-y-1">
