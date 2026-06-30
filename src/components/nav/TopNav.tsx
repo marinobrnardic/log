@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Logo } from "@/components/brand/Logo";
 import { useFlowGuard } from "./FlowGuardContext";
 
 export function TopNav() {
@@ -16,10 +17,10 @@ export function TopNav() {
           e.preventDefault();
           attemptLeave(() => router.push("/workouts"));
         }}
-        className="text-xl font-semibold text-(--color-accent)"
-        aria-label="LOG — home"
+        className="flex items-center"
+        aria-label="log — home"
       >
-        LOG
+        <Logo size={28} />
       </Link>
     </nav>
   );

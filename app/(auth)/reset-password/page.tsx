@@ -1,10 +1,11 @@
 import Link from "next/link";
+import { Logo } from "@/components/brand/Logo";
 import { ResetPasswordForm } from "./ResetPasswordForm";
 
 export default function ResetPasswordPage() {
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-semibold text-(--color-accent)">LOG</h1>
+      <Logo size={40} />
       <h2 className="text-2xl font-semibold">Reset password</h2>
       <p className="text-sm text-(--color-text-secondary)">
         Enter your email and we&apos;ll send you a reset link.

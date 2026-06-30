@@ -1,11 +1,13 @@
 import { ImageResponse } from "next/og";
+import { ringDataUri } from "@/components/brand/ringSvg";
 
 export const size = { width: 512, height: 512 };
 export const contentType = "image/png";
 
 export default function Icon1() {
-  // Maskable icon: keep the wordmark inside the inner ~80% safe zone so OS
-  // cropping (circle, squircle, rounded-rect) doesn't clip the brand.
+  // Maskable icon: keep the mark inside the inner ~80% safe zone so OS cropping
+  // (circle, squircle, rounded-rect) doesn't clip it.
+  const ring = Math.round(size.width * 0.46);
   return new ImageResponse(
     (
       <div
@@ -16,13 +18,11 @@ export default function Icon1() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          color: "#22C55E",
-          fontSize: 180,
-          fontWeight: 700,
-          letterSpacing: "-0.05em",
         }}
       >
-        LOG
+        {/* next/og renders this to a PNG — next/image does not apply here. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={ringDataUri({ size: ring })} width={ring} height={ring} alt="log" />
       </div>
     ),
     { ...size },

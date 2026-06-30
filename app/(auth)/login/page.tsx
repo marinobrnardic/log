@@ -1,10 +1,11 @@
 import Link from "next/link";
+import { Logo } from "@/components/brand/Logo";
 import { LoginForm } from "./LoginForm";
 
 export default function LoginPage() {
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-semibold text-(--color-accent)">LOG</h1>
+      <Logo size={40} />
       <h2 className="text-2xl font-semibold">Sign in</h2>
       <LoginForm />
       <div className="text-sm text-(--color-text-secondary) space-y-2">

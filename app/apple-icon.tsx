@@ -1,9 +1,11 @@
 import { ImageResponse } from "next/og";
+import { ringDataUri } from "@/components/brand/ringSvg";
 
 export const size = { width: 180, height: 180 };
 export const contentType = "image/png";
 
 export default function AppleIcon() {
+  const ring = Math.round(size.width * 0.58);
   return new ImageResponse(
     (
       <div
@@ -14,13 +16,9 @@ export default function AppleIcon() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          color: "#22C55E",
-          fontSize: 84,
-          fontWeight: 700,
-          letterSpacing: "-0.05em",
         }}
       >
-        LOG
+        <img src={ringDataUri({ size: ring })} width={ring} height={ring} alt="log" />
       </div>
     ),
     { ...size },
