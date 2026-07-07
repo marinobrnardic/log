@@ -3,6 +3,7 @@ import { ringDataUri } from "@/components/brand/ringSvg";
 
 export const size = { width: 512, height: 512 };
 export const contentType = "image/png";
+export const revalidate = 31536000;
 
 export default function Icon1() {
   // Maskable icon: keep the mark inside the inner ~80% safe zone so OS cropping

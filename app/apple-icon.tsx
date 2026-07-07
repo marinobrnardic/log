@@ -3,6 +3,7 @@ import { ringDataUri } from "@/components/brand/ringSvg";
 
 export const size = { width: 180, height: 180 };
 export const contentType = "image/png";
+export const revalidate = 31536000;
 
 export default function AppleIcon() {
   const ring = Math.round(size.width * 0.58);

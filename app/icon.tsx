@@ -3,6 +3,7 @@ import { ringDataUri } from "@/components/brand/ringSvg";
 
 export const size = { width: 32, height: 32 };
 export const contentType = "image/png";
+export const revalidate = 31536000;
 
 export default function Icon() {
   const ring = Math.round(size.width * 0.72);
@@ -18,6 +19,8 @@ export default function Icon() {
           justifyContent: "center",
         }}
       >
+        {/* next/og renders this to a PNG — next/image does not apply here. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={ringDataUri({ size: ring })} width={ring} height={ring} alt="log" />
       </div>
     ),

@@ -1,3 +1,5 @@
+import React from "react";
+
 interface Props {
   /** Rendered width/height in px. */
   size?: number;
@@ -8,7 +10,7 @@ interface Props {
  * The "log" brand mark — the Track ring emblem (mark only, no wordmark).
  * A full grey track with a ~75% green progress arc (gap in the top-left).
  */
-export function Logo({ size = 28, className }: Props) {
+export const Logo = React.memo(function Logo({ size = 28, className }: Props) {
   return (
     <svg
       width={size}
@@ -33,4 +35,4 @@ export function Logo({ size = 28, className }: Props) {
       />
     </svg>
   );
-}
+});

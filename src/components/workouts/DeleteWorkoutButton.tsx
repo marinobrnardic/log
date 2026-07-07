@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { deleteWorkoutAction } from "@/actions/workouts";
 
-export function DeleteWorkoutButton({ workoutId }: { workoutId: string }) {
+export function DeleteWorkoutButton({ workoutId, iconOnly = false }: { workoutId: string; iconOnly?: boolean }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -39,10 +39,12 @@ export function DeleteWorkoutButton({ workoutId }: { workoutId: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex-1 min-h-[44px] rounded-lg border border-(--color-destructive)/40 text-(--color-destructive) flex items-center justify-center gap-2"
+        className={iconOnly
+          ? "w-[44px] h-[44px] rounded-lg border border-(--color-destructive)/40 text-(--color-destructive) flex items-center justify-center"
+          : "flex-1 min-h-[44px] rounded-lg border border-(--color-destructive)/40 text-(--color-destructive) flex items-center justify-center gap-2"}
       >
         <Trash2 size={18} strokeWidth={1.75} aria-hidden="true" />
-        Delete
+        {!iconOnly && "Delete"}
       </button>
 
       {open &&
