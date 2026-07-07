@@ -10,18 +10,20 @@ export function TopNav() {
   const { attemptLeave } = useFlowGuard();
 
   return (
-    <nav className="fixed top-0 inset-x-0 h-14 bg-(--color-bg-surface) border-b border-(--color-border) flex items-center px-4 z-30">
-      <Link
-        href="/workouts"
-        onClick={(e) => {
-          e.preventDefault();
-          attemptLeave(() => router.push("/workouts"));
-        }}
-        className="flex items-center"
-        aria-label="log — home"
-      >
-        <Logo size={28} />
-      </Link>
+    <nav className="fixed top-0 inset-x-0 safe-top bg-(--color-bg-surface) border-b border-(--color-border) z-30">
+      <div className="h-14 flex items-center px-4">
+        <Link
+          href="/workouts"
+          onClick={(e) => {
+            e.preventDefault();
+            attemptLeave(() => router.push("/workouts"));
+          }}
+          className="flex items-center"
+          aria-label="log — home"
+        >
+          <Logo size={28} />
+        </Link>
+      </div>
     </nav>
   );
 }
