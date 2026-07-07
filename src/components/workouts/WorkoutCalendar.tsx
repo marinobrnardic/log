@@ -155,7 +155,7 @@ export function WorkoutCalendar({ workouts }: Props) {
               </svg>
             </span>
             <Link href={`/workouts/${selWorkout.id}`} className="no-underline min-w-0">
-              <div className="font-extrabold text-[19px] tracking-[-0.02em] leading-[1.1]">
+              <div className="font-semibold text-[19px] tracking-[-0.02em] leading-[1.1]">
                 Day {dayLabel(selWorkout.day)} — 2-Day Split
               </div>
               <div className="text-[11px] tracking-[.1em] uppercase text-(--color-text-muted) mt-1">
@@ -179,7 +179,7 @@ export function WorkoutCalendar({ workouts }: Props) {
                 <span className="w-2 h-2 rounded-full bg-(--color-bg-surface-2)" />
               </span>
               <div>
-                <div className="font-extrabold text-[19px] tracking-[-0.02em] text-(--color-text-secondary) leading-[1.1]">
+                <div className="font-semibold text-[19px] tracking-[-0.02em] text-(--color-text-secondary) leading-[1.1]">
                   Rest day
                 </div>
                 <div className="text-[11px] tracking-[.1em] uppercase text-(--color-text-muted) mt-1">
@@ -189,7 +189,7 @@ export function WorkoutCalendar({ workouts }: Props) {
             </div>
             <Link
               href="/workouts/new"
-              className="h-[42px] px-5 bg-(--color-accent) text-(--color-accent-text) rounded-[11px] font-extrabold text-sm flex items-center no-underline hover:bg-(--color-accent-hover)"
+              className="h-[42px] px-5 bg-(--color-accent) text-(--color-accent-text) rounded-[11px] font-medium text-sm flex items-center no-underline hover:bg-(--color-accent-hover)"
             >
               Log a Workout
             </Link>
