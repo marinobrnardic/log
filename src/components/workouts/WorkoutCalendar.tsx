@@ -70,7 +70,7 @@ export function WorkoutCalendar({ workouts }: Props) {
       <div className="pt-[22px] pb-[18px] border-b border-(--color-border)">
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-[10px]">
-            <h2 className="m-0 font-extrabold text-[28px] tracking-[-0.025em] leading-none">
+            <h2 className="m-0 font-semibold text-[28px] tracking-[-0.025em] leading-none">
               {MONTH_NAMES[month]}
             </h2>
             <span className="font-semibold text-[26px] tracking-[-0.03em] text-(--color-text-muted) leading-none">
