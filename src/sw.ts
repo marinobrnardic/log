@@ -56,6 +56,19 @@ const serwist = new Serwist({
         cacheName: "google-fonts",
       }),
     },
+    // App Router RSC navigation payloads: never cache. A cached RSC payload
+    // references the JS chunk hashes of the build it was fetched from; after a
+    // deploy those chunks are gone, so serving a stale payload leaves the client
+    // stuck on the loading.tsx skeleton (dynamic routes like /workouts/[id]).
+    // Must sit before ...defaultCache so it shadows its pages-rsc NetworkFirst
+    // rules (Serwist uses first-match routing).
+    {
+      matcher: ({ request, url, sameOrigin }) =>
+        sameOrigin &&
+        request.headers.get("RSC") === "1" &&
+        !url.pathname.startsWith("/api/"),
+      handler: new NetworkOnly(),
+    },
     // Everything else (app shell, navigations, static assets) uses Serwist's
     // sensible defaults.
     ...defaultCache,
@@ -71,3 +84,14 @@ const serwist = new Serwist({
 });
 
 serwist.addEventListeners();
+
+// Purge the RSC navigation caches populated by earlier service-worker versions.
+// The new SW no longer reads them (RSC is NetworkOnly above), but deleting them
+// keeps leftover stale payloads from lingering after this update lands.
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    Promise.all(
+      ["pages-rsc", "pages-rsc-prefetch"].map((name) => caches.delete(name)),
+    ).then(() => undefined),
+  );
+});
