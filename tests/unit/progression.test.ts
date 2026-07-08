@@ -356,6 +356,73 @@ describe("getSuggestedWeight", () => {
     ).toBe(110);
   });
 
+  describe("allowBodyweight", () => {
+    it("returns null when the most recent logged performance was bodyweight", () => {
+      const history = [
+        mkWorkout("2025-03-01", "Pull-ups", [
+          { type: "normal", weight: null, reps: 10 },
+          { type: "normal", weight: null, reps: 8 },
+        ]),
+        mkWorkout("2025-02-01", "Pull-ups", [
+          { type: "normal", weight: 5, reps: 10 },
+        ]),
+      ];
+      expect(
+        getSuggestedWeight({
+          exerciseName: "Pull-ups",
+          setType: "normal",
+          indexInExercise: 0,
+          targetRepsMax: 10,
+          history,
+          increment: 2.5,
+          allowBodyweight: true,
+        }),
+      ).toBeNull();
+    });
+
+    it("carries forward when the most recent performance was weighted (with bump)", () => {
+      const history = [
+        mkWorkout("2025-03-01", "Pull-ups", [
+          { type: "normal", weight: 10, reps: 10 },
+        ]),
+      ];
+      expect(
+        getSuggestedWeight({
+          exerciseName: "Pull-ups",
+          setType: "normal",
+          indexInExercise: 0,
+          targetRepsMax: 10,
+          history,
+          increment: 2.5,
+          allowBodyweight: true,
+        }),
+      ).toBe(12.5);
+    });
+
+    it("treats a fully-skipped session as no data and keeps walking back", () => {
+      const history = [
+        mkWorkout("2025-03-01", "Pull-ups", [
+          { type: "normal", weight: null, reps: null, skipped: true },
+          { type: "normal", weight: null, reps: null, skipped: true },
+        ]),
+        mkWorkout("2025-02-01", "Pull-ups", [
+          { type: "normal", weight: 8, reps: 8 },
+        ]),
+      ];
+      expect(
+        getSuggestedWeight({
+          exerciseName: "Pull-ups",
+          setType: "normal",
+          indexInExercise: 0,
+          targetRepsMax: 10,
+          history,
+          increment: 2.5,
+          allowBodyweight: true,
+        }),
+      ).toBe(8); // reps below target → no bump
+    });
+  });
+
   it("rounds float-arithmetic noise to 1 decimal", () => {
     // 102.49999999999999 would otherwise leak into the input.
     const history = [

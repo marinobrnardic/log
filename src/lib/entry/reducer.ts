@@ -208,6 +208,7 @@ function seedSuggestedValues(
       targetRepsMax: ws.targetRepsMax,
       history,
       increment,
+      allowBodyweight: ws.allowBodyweight,
     });
     out[ws.key] =
       suggested != null
